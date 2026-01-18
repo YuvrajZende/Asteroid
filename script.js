@@ -33,9 +33,9 @@ function initLoadingScreen() {
         return;
     }
 
-    // Start video from 18 seconds
+    // Play video from the beginning
     if (loadingVideo) {
-        loadingVideo.currentTime = 18;
+        loadingVideo.currentTime = 0;
         loadingVideo.play();
     }
 
