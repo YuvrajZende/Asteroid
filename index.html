@@ -1,0 +1,342 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Explore the cosmos - A premium space experience with cutting-edge technology">
+    <title>Asteroid</title>
+
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Fascinate&family=Playfair+Display:wght@400;700;900&family=Inter:wght@300;400;500;600&display=swap"
+        rel="stylesheet">
+
+    <!-- Styles -->
+    <link rel="stylesheet" href="styles.css">
+</head>
+
+<body>
+    <!-- Loading Screen with Video -->
+    <div class="loading-screen" id="loading-screen">
+        <video autoplay muted playsinline class="loading-video" id="loading-video">
+            <source src="src/Video Project.mp4" type="video/mp4">
+        </video>
+
+        <!-- Auriga-style Loading Overlay -->
+        <div class="loading-overlay">
+            <!-- Progress Bar Container -->
+            <div class="loading-progress-container">
+                <div class="loading-bar-wrapper">
+                    <div class="loading-bar" id="loading-bar"></div>
+                </div>
+                <div class="loading-status">
+                    <span class="loading-colon">:</span>
+                    <span class="loading-text" id="loading-text">LOADING...</span>
+                </div>
+            </div>
+
+            <!-- ASTEROID Text with Reveal Effect -->
+            <div class="asteroid-text-container">
+                <div class="asteroid-text-wrapper">
+                    <!-- Background text (black) -->
+                    <span class="asteroid-text asteroid-text-back">ASTEROID</span>
+                    <!-- Foreground text (white, clipped) -->
+                    <span class="asteroid-text asteroid-text-front" id="asteroid-text-front">ASTEROID</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Content (hidden initially) -->
+    <div class="main-content" id="main-content">
+
+        <!-- Hero Section -->
+        <section class="hero" id="hero">
+            <!-- Starfield Background -->
+            <div class="starfield" id="starfield"></div>
+
+            <!-- Nebula Gradient Overlay -->
+            <div class="nebula-overlay"></div>
+
+            <!-- Planet Container with Canvas for Frame Animation -->
+            <div class="planet-container" id="planet">
+                <canvas id="planet-canvas" class="planet-canvas"></canvas>
+            </div>
+
+            <!-- Headlines Layer (Behind Planet) -->
+            <div class="headlines-layer">
+                <div class="headline headline-top" id="headline-top">
+                    <h1 class="headline-primary">ASKED ?</h1>
+                </div>
+                <div class="headline headline-bottom" id="headline-bottom">
+                    <h1 class="headline-primary">ANSWERED !!</h1>
+                </div>
+            </div>
+
+            <!-- Descriptions Layer (In Front of Planet) -->
+            <div class="descriptions-layer">
+                <div class="description-top">
+                    <span class="headline-label">MULTI-MODEL AI SEARCH</span>
+                    <p class="headline-tagline">Answers with sources. News with context. Papers that matter.</p>
+                    <p class="headline-description">Search the web using multiple AI models at once — compare responses,
+                        verify claims with citations, and stay ahead with curated AI news + weekly top research papers.
+                    </p>
+                </div>
+                <div class="description-bottom">
+                    <span class="headline-sub">NEWS • PAPERS • VERIFIED</span>
+                    <p class="headline-tagline">Answers with sources. News with context. Papers that matter.</p>
+                    <p class="headline-description">Search the web using multiple AI models at once — compare responses,
+                        verify claims with citations, and stay ahead with curated AI news + weekly top research papers.
+                    </p>
+                </div>
+
+                <!-- CTA Button -->
+                <div class="cta-container" id="cta">
+                    <a href="#features" class="cta-button">
+                        <span>Explore Now</span>
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2">
+                            <path d="M5 12h14M12 5l7 7-7 7" />
+                        </svg>
+                    </a>
+                </div>
+            </div>
+
+        </section>
+
+        <!-- Fixed Navigation -->
+        <nav class="nav" id="nav">
+            <div class="nav-logo">
+                <img src="src/asteroid-logo.png" alt="Asteroid Logo" class="nav-logo-img">
+                <span>Asteroid</span>
+            </div>
+        </nav>
+
+        <!-- Features Section -->
+        <section class="features" id="features">
+            <div class="section-header">
+                <span class="section-label">CAPABILITIES</span>
+                <h2 class="section-title">Two Powerful Modes</h2>
+                <p class="section-subtitle">Choose how deep you want to go</p>
+            </div>
+
+            <div class="features-grid">
+                <div class="feature-card" data-animate>
+                    <div class="feature-icon">
+                        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="1.5">
+                            <circle cx="11" cy="11" r="8" />
+                            <path d="m21 21-4.35-4.35" />
+                        </svg>
+                    </div>
+                    <h3 class="feature-title">Web Search</h3>
+                    <p class="feature-desc">Lightning-fast results with images, knowledge graphs, and related content.
+                        Perfect for quick answers.</p>
+                    <ul class="feature-list">
+                        <li>Real-time web results</li>
+                        <li>Image search</li>
+                        <li>Knowledge panels</li>
+                    </ul>
+                </div>
+
+                <div class="feature-card featured" data-animate>
+                    <div class="feature-badge">RECOMMENDED</div>
+                    <div class="feature-icon">
+                        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="1.5">
+                            <path d="M12 2a10 10 0 1 0 10 10" />
+                            <path d="M12 12V6" />
+                            <path d="M12 12l4-4" />
+                            <circle cx="12" cy="12" r="2" />
+                        </svg>
+                    </div>
+                    <h3 class="feature-title">Deep Think</h3>
+                    <p class="feature-desc">Advanced AI-powered research that synthesizes information from multiple
+                        sources
+                        with expert analysis.</p>
+                    <ul class="feature-list">
+                        <li>Multi-source synthesis</li>
+                        <li>Expert-level analysis</li>
+                        <li>Verified citations</li>
+                        <li>Research papers</li>
+                    </ul>
+                </div>
+            </div>
+        </section>
+
+        <!-- AI Providers Section -->
+        <section class="providers" id="providers">
+            <div class="providers-layout">
+                <!-- Left Side - Text & Providers -->
+                <div class="providers-content">
+                    <div class="section-header-left">
+                        <span class="section-label">AI MODELS</span>
+                        <h2 class="section-title">Powered by the Best</h2>
+                        <p class="section-subtitle">Compare responses from multiple AI providers and get the best
+                            answers for your queries.</p>
+                    </div>
+
+                    <div class="providers-grid">
+                        <div class="provider-item" data-animate>
+                            <div class="provider-logo">G</div>
+                            <div class="provider-info">
+                                <span class="provider-name">Groq</span>
+                                <span class="provider-model">Llama 3.3 70B</span>
+                            </div>
+                        </div>
+                        <div class="provider-item" data-animate>
+                            <div class="provider-logo">✦</div>
+                            <div class="provider-info">
+                                <span class="provider-name">Gemini</span>
+                                <span class="provider-model">2.0 Flash</span>
+                            </div>
+                        </div>
+                        <div class="provider-item" data-animate>
+                            <div class="provider-logo">◈</div>
+                            <div class="provider-info">
+                                <span class="provider-name">OpenRouter</span>
+                                <span class="provider-model">Multi-Model</span>
+                            </div>
+                        </div>
+                        <div class="provider-item" data-animate>
+                            <div class="provider-logo">Z</div>
+                            <div class="provider-info">
+                                <span class="provider-name">z.ai</span>
+                                <span class="provider-model">Advanced Reasoning</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Right Side - Video -->
+                <div class="video-showcase">
+                    <div class="video-container">
+                        <video autoplay muted loop playsinline class="showcase-video" id="models-video">
+                            <source src="src/Models.mp4" type="video/mp4">
+                        </video>
+                        <div class="video-overlay"></div>
+                        <div class="video-frame"></div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- How It Works Section -->
+        <section class="how-it-works" id="how-it-works">
+            <div class="how-it-works-layout">
+                <!-- Left Side - Video -->
+                <div class="video-showcase video-left">
+                    <div class="video-container">
+                        <video autoplay muted loop playsinline class="showcase-video" id="working-video">
+                            <source src="src/Working.mp4" type="video/mp4">
+                        </video>
+                        <div class="video-overlay"></div>
+                        <div class="video-frame"></div>
+                    </div>
+                </div>
+
+                <!-- Right Side - Text & Steps -->
+                <div class="how-it-works-content">
+                    <div class="section-header-right">
+                        <span class="section-label">WORKFLOW</span>
+                        <h2 class="section-title">How It Works</h2>
+                        <p class="section-subtitle">From question to answer in seconds</p>
+                    </div>
+
+                    <div class="steps-container">
+                        <div class="step" data-animate>
+                            <div class="step-number">01</div>
+                            <div class="step-content">
+                                <h3>Enter Your Query</h3>
+                                <p>Ask anything — from quick facts to complex research questions</p>
+                            </div>
+                        </div>
+                        <div class="step" data-animate>
+                            <div class="step-number">02</div>
+                            <div class="step-content">
+                                <h3>Choose Your Mode</h3>
+                                <p>Select Web Search for speed or Deep Think for comprehensive analysis</p>
+                            </div>
+                        </div>
+                        <div class="step" data-animate>
+                            <div class="step-number">03</div>
+                            <div class="step-content">
+                                <h3>Get AI-Synthesized Results</h3>
+                                <p>Receive answers with citations, context, and follow-up suggestions</p>
+                            </div>
+                        </div>
+                        <div class="step" data-animate>
+                            <div class="step-number">04</div>
+                            <div class="step-content">
+                                <h3>Continue the Conversation</h3>
+                                <p>Ask follow-up questions — your search history is always saved</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Stats Section -->
+        <section class="stats" id="stats">
+            <div class="stats-grid">
+                <div class="stat-item" data-animate>
+                    <span class="stat-number" data-count="4">0</span>
+                    <span class="stat-label">AI Providers</span>
+                </div>
+                <div class="stat-item" data-animate>
+                    <span class="stat-number" data-count="99">0</span><span class="stat-suffix">%</span>
+                    <span class="stat-label">Accuracy Rate</span>
+                </div>
+                <div class="stat-item" data-animate>
+                    <span class="stat-number" data-count="500">0</span><span class="stat-suffix">ms</span>
+                    <span class="stat-label">Avg Response</span>
+                </div>
+                <div class="stat-item" data-animate>
+                    <span class="stat-number" data-count="24">0</span><span class="stat-suffix">/7</span>
+                    <span class="stat-label">Available</span>
+                </div>
+            </div>
+        </section>
+
+        <!-- CTA Section -->
+        <section class="final-cta" id="final-cta">
+            <div class="cta-content" data-animate>
+                <h2 class="cta-title">Ready to Search Smarter?</h2>
+                <p class="cta-desc">Join thousands of researchers, developers, and curious minds using Asteroid.</p>
+                <a href="#" class="cta-button-large">
+                    <span>Start Searching — It's Free</span>
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M5 12h14M12 5l7 7-7 7" />
+                    </svg>
+                </a>
+            </div>
+        </section>
+
+        <!-- Footer -->
+        <footer class="footer">
+            <div class="footer-content">
+                <div class="footer-logo">Asteroid</div>
+                <p class="footer-tagline">AI-Powered Search for the Curious Mind</p>
+                <div class="footer-links">
+                    <a href="#">About</a>
+                    <a href="#">Privacy</a>
+                    <a href="#">Terms</a>
+                    <a href="#">Contact</a>
+                </div>
+                <p class="footer-copyright">© 2025 Asteroid. All rights reserved.</p>
+            </div>
+        </footer>
+
+    </div> <!-- End main-content -->
+
+    <!-- GSAP Library + ScrollTrigger -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js"></script>
+    <script src="script.js"></script>
+</body>
+
+</html>
