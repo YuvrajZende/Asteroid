@@ -1,0 +1,301 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+
+@custom-variant dark (&:is(.dark *));
+
+/* ============================================
+   DESIGN SYSTEM - Inter Font + Custom Palette
+   ============================================ */
+
+@layer base {
+  :root {
+    /* 🌞 Light Mode - Sidebar */
+    --sidebar: #F9FAFB;
+    --sidebar-foreground: #0F172A;
+    --sidebar-primary: #2563EB;
+    --sidebar-primary-foreground: #FFFFFF;
+    --sidebar-accent: #DBEAFE;
+    --sidebar-accent-foreground: #0F172A;
+    --sidebar-border: #E5E7EB;
+    --sidebar-ring: #2563EB;
+  }
+
+  .dark {
+    /* 🌙 Dark Mode - Sidebar */
+    --sidebar: #111827;
+    --sidebar-foreground: #E5E7EB;
+    --sidebar-primary: #3B82F6;
+    --sidebar-primary-foreground: #FFFFFF;
+    --sidebar-accent: #1E3A8A;
+    --sidebar-accent-foreground: #E5E7EB;
+    --sidebar-border: #1F2933;
+    --sidebar-ring: #3B82F6;
+  }
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-serif: var(--font-serif), "Libre Baskerville", Georgia, serif;
+  --font-sans: var(--font-sans), system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --font-mono: var(--font-mono), ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+  --color-sidebar-ring: var(--sidebar-ring);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar: var(--sidebar);
+  --color-chart-5: var(--chart-5);
+  --color-chart-4: var(--chart-4);
+  --color-chart-3: var(--chart-3);
+  --color-chart-2: var(--chart-2);
+  --color-chart-1: var(--chart-1);
+  --color-ring: var(--ring);
+  --color-input: var(--input);
+  --color-border: var(--border);
+  --color-destructive: var(--destructive);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-accent: var(--accent);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-muted: var(--muted);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-secondary: var(--secondary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary: var(--primary);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-popover: var(--popover);
+  --color-card-foreground: var(--card-foreground);
+  --color-card: var(--card);
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+}
+
+/* ============================================
+   🌞 LIGHT MODE
+   ============================================ */
+:root {
+  --radius: 0.625rem;
+
+  /* Background */
+  --background: #ffffff;
+  --bg-secondary: #f9fafb;
+
+  /* Surface Tint */
+  --surface-tint: #c9fdf2;
+
+  /* Text */
+  --foreground: #0f172a;
+  --text-secondary: #475569;
+  --text-tertiary: #9CA3AF;
+
+  /* Components */
+  --card: #ffffff;
+  --card-foreground: #0f172a;
+  --popover: #ffffff;
+  --popover-foreground: #0f172a;
+
+  /* Primary (accent teal) */
+  --primary: #82c8e5;
+  --primary-foreground: #0f172a;
+
+  /* Secondary */
+  --secondary: #f9fafb;
+  --secondary-foreground: #0f172a;
+
+  /* Muted */
+  --muted: #f9fafb;
+  --muted-foreground: #475569;
+
+  /* Accent / Link */
+  --accent: #82c8e5;
+  --accent-foreground: #0f172a;
+
+  /* Destructive */
+  --destructive: #EF4444;
+
+  /* Borders & Inputs */
+  --border: #e5e7eb;
+  --input: #e5e7eb;
+  --ring: #82c8e5;
+
+  /* Charts */
+  --chart-1: #82c8e5;
+  --chart-2: #10B981;
+  --chart-3: #F59E0B;
+  --chart-4: #8B5CF6;
+  --chart-5: #EC4899;
+
+  /* Sidebar */
+  --sidebar: #f9fafb;
+  --sidebar-foreground: #0f172a;
+  --sidebar-primary: #82c8e5;
+  --sidebar-primary-foreground: #0f172a;
+  --sidebar-accent: #c9fdf2;
+  --sidebar-accent-foreground: #0f172a;
+  --sidebar-border: #e5e7eb;
+  --sidebar-ring: #82c8e5;
+}
+
+/* ============================================
+   🌙 DARK MODE
+   ============================================ */
+.dark {
+  /* Background */
+  --background: #0b0f14;
+  --bg-secondary: #111827;
+
+  /* Surface Tint */
+  --surface-tint: #1e3a40;
+
+  /* Text */
+  --foreground: #e5e7eb;
+  --text-secondary: #9ca3af;
+  --text-tertiary: #6B7280;
+
+  /* Components */
+  --card: #111827;
+  --card-foreground: #e5e7eb;
+  --popover: #111827;
+  --popover-foreground: #e5e7eb;
+
+  /* Primary (accent teal) */
+  --primary: #82c8e5;
+  --primary-foreground: #0b0f14;
+
+  /* Secondary */
+  --secondary: #1f2933;
+  --secondary-foreground: #e5e7eb;
+
+  /* Muted */
+  --muted: #1f2933;
+  --muted-foreground: #9ca3af;
+
+  /* Accent / Link */
+  --accent: #82c8e5;
+  --accent-foreground: #0b0f14;
+
+  /* Destructive */
+  --destructive: #F87171;
+
+  /* Borders & Inputs */
+  --border: #1f2933;
+  --input: #1f2933;
+  --ring: #82c8e5;
+
+  /* Charts */
+  --chart-1: #82c8e5;
+  --chart-2: #34D399;
+  --chart-3: #FBBF24;
+  --chart-4: #A78BFA;
+  --chart-5: #F472B6;
+
+  /* Sidebar */
+  --sidebar: #111827;
+  --sidebar-foreground: #e5e7eb;
+  --sidebar-primary: #82c8e5;
+  --sidebar-primary-foreground: #0b0f14;
+  --sidebar-accent: #1e3a40;
+  --sidebar-accent-foreground: #e5e7eb;
+  --sidebar-border: #1f2933;
+  --sidebar-ring: #82c8e5;
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+    font-family: var(--font-sans), system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  /* ============================================
+     TYPOGRAPHY SYSTEM - Perplexity Style
+     Serif = trust, intelligence, calm (marketing)
+     Sans = clarity, speed, usability (product)
+     ============================================ */
+
+  /* Hero & Marketing Headlines - Serif */
+  h1,
+  .hero-title {
+    font-family: var(--font-serif), "Libre Baskerville", Georgia, serif;
+    font-weight: 400;
+    letter-spacing: -0.02em;
+    line-height: 1.2;
+  }
+
+  /* Section Titles - Serif */
+  h2,
+  .section-title {
+    font-family: var(--font-serif), "Libre Baskerville", Georgia, serif;
+    font-weight: 400;
+    letter-spacing: -0.02em;
+    line-height: 1.3;
+  }
+
+  /* Subheadings & Product Headers - Sans */
+  h3,
+  h4,
+  h5,
+  h6 {
+    font-family: var(--font-sans), system-ui, sans-serif;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+    line-height: 1.4;
+  }
+
+  /* Body Text - Sans Regular */
+  p,
+  li,
+  td {
+    font-family: var(--font-sans), system-ui, sans-serif;
+    font-weight: 400;
+    line-height: 1.6;
+  }
+
+  /* Interactive Elements - Sans Medium */
+  button,
+  input,
+  select,
+  textarea {
+    font-family: var(--font-sans), system-ui, sans-serif;
+    font-weight: 500;
+  }
+
+  /* App-specific: Question/Query - Sans Semibold */
+  .query-text,
+  .question {
+    font-family: var(--font-sans), system-ui, sans-serif;
+    font-weight: 600;
+  }
+
+  /* App-specific: Answer - Sans Regular */
+  .answer-text,
+  .response {
+    font-family: var(--font-sans), system-ui, sans-serif;
+    font-weight: 400;
+    line-height: 1.7;
+  }
+
+  /* App-specific: Citations - Sans Small */
+  .citation,
+  .source-badge {
+    font-family: var(--font-sans), system-ui, sans-serif;
+    font-size: 0.75rem;
+    font-weight: 500;
+  }
+
+  /* Code - Mono */
+  code,
+  pre,
+  .code {
+    font-family: var(--font-mono), ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  }
+}
