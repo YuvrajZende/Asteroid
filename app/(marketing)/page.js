@@ -299,6 +299,7 @@ export default function Home() {
                     <div className="cta-content" data-animate>
                         <h2 className="cta-title">Ready to Search Smarter?</h2>
                         <p className="cta-desc">Join thousands of researchers, developers, and curious minds using Asteroid.</p>
+                        {/* eslint-disable-next-line @next/next/no-html-link-for-pages */}
                         <a href="/search" className="cta-button-large">
                             <span>Start Searching — It's Free</span>
                             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
