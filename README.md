@@ -1,15 +1,15 @@
-# Aion AI Application
+# Asteroid AI Application
 
 A Next.js-powered AI search and research application with user authentication and search history management.
 
 ## Features
 
-- 🔐 **User Authentication** - Secure sign-in/sign-up with Clerk
-- 🔍 **AI-Powered Search** - Search and research capabilities
-- 📚 **Search History** - Save and manage your search queries
-- 🎨 **Modern UI** - Built with shadcn/ui components and Tailwind CSS
-- 📱 **Responsive Design** - Works on all devices
-- 🗄️ **Database Storage** - Powered by Supabase
+- **User Authentication** - Secure sign-in/sign-up with Clerk
+- **AI-Powered Search** - Search and research capabilities
+- **Search History** - Save and manage your search queries
+- **Modern UI** - Built with shadcn/ui components and Tailwind CSS
+- **Responsive Design** - Works on all devices
+- **Database Storage** - Powered by Supabase
 
 ## Tech Stack
 
