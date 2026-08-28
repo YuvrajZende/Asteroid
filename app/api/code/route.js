@@ -1,4 +1,8 @@
 import { NextResponse } from 'next/server';
+import { makeCacheKey, getCached, setCache } from '@/lib/redis/cache.js';
+import { checkRateLimit, rateLimitResponse, getRateLimitIdentifier } from '@/lib/rate-limit/limiter.js';
+import { trackEvent, extractContext } from '@/lib/analytics/tracker.js';
+import { EVENTS } from '@/lib/analytics/constants.js';
 
 // System prompt for code generation
 const CODE_SYSTEM_PROMPT = `You are an expert coding assistant. Generate clean, well-documented, and efficient code.
@@ -91,7 +95,7 @@ const PROVIDERS = {
     },
     openrouter: {
         url: 'https://openrouter.ai/api/v1/chat/completions',
-        model: 'google/gemini-2.0-flash-exp:free',
+        model: 'google/gemini-2.5-flash-lite',
         getHeaders: (apiKey) => ({
             'Authorization': `Bearer ${apiKey}`,
             'Content-Type': 'application/json',
@@ -196,53 +200,70 @@ function parseCodeResponse(content) {
 
 export async function POST(request) {
     try {
+        // ── Rate Limiting ─────────────────────────────────
+        const { identifier, userId } = await getRateLimitIdentifier(request);
+        const rateLimit = await checkRateLimit(identifier, {
+            windowMs: 60_000,
+            maxRequests: 3,
+            prefix: 'rl:code',
+        });
+        if (!rateLimit.allowed) return rateLimitResponse(rateLimit);
+
         const { query, isFixMode = false, model = 'groq' } = await request.json();
+        const analyticsCtx = { ...extractContext(request), route: 'code', userId };
 
         if (!query) {
             return NextResponse.json({ error: 'Query is required' }, { status: 400 });
         }
 
+        // ── Cache Lookup ──────────────────────────────────
+        const cacheKey = makeCacheKey('code', { query, model, isFixMode });
+        const cached = await getCached(cacheKey);
+        if (cached) {
+            trackEvent(EVENTS.CACHE_HIT, { query, route: 'code' }, analyticsCtx);
+            return NextResponse.json({ ...cached, fromCache: true });
+        }
+        trackEvent(EVENTS.CACHE_MISS, { query, route: 'code' }, analyticsCtx);
+        trackEvent(EVENTS.CODE_REQUEST, { query, model, isFixMode }, analyticsCtx);
+
         // Select appropriate system prompt
         const systemPrompt = isFixMode ? FIX_SYSTEM_PROMPT : CODE_SYSTEM_PROMPT;
 
-        // Get provider config
-        const providerConfig = PROVIDERS[model] || PROVIDERS.groq;
-        const apiKey = process.env[providerConfig.envKey];
+        // ── Provider selection with automatic failover ────────
+        // Try the requested provider first, then every other configured
+        // provider, so a single provider outage doesn't take code mode down.
+        const preferredProvider = PROVIDERS[model] || PROVIDERS.groq;
+        const orderedProviders = [
+            preferredProvider,
+            ...Object.values(PROVIDERS).filter((p) => p !== preferredProvider),
+        ];
 
-        if (!apiKey) {
-            // Try fallback providers
-            for (const [providerName, config] of Object.entries(PROVIDERS)) {
-                const key = process.env[config.envKey];
-                if (key) {
-                    console.log(`Using fallback provider: ${providerName}`);
-                    const result = await generateCode(config, key, systemPrompt, query);
-                    if (result) {
-                        return NextResponse.json(result);
-                    }
-                }
-            }
-
-            return NextResponse.json({
-                error: 'No AI API key configured',
-                isCodeMode: true,
-                codeBlocks: []
-            }, { status: 500 });
+        let result = null;
+        for (const config of orderedProviders) {
+            const apiKey = process.env[config.envKey];
+            if (!apiKey) continue;
+            result = await generateCode(config, apiKey, systemPrompt, query);
+            if (result) break;
+            console.log(`Provider ${config.envKey} call failed — trying next provider`);
+            trackEvent(EVENTS.PROVIDER_FALLBACK, { model, reason: 'api_call_failed' }, analyticsCtx);
         }
-
-        const result = await generateCode(providerConfig, apiKey, systemPrompt, query);
 
         if (!result) {
             return NextResponse.json({
-                error: 'Failed to generate code',
+                error: 'No AI provider available. Check provider API keys.',
                 isCodeMode: true,
                 codeBlocks: []
             }, { status: 500 });
         }
+
+        // ── Cache Write ───────────────────────────────────
+        await setCache(cacheKey, result, 'code');
 
         return NextResponse.json(result);
 
     } catch (error) {
         console.error('Code generation error:', error);
+        trackEvent(EVENTS.API_ERROR, { error: error.message, route: 'code' });
         return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
     }
 }

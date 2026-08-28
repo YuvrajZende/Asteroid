@@ -1,4 +1,8 @@
 import { NextResponse } from 'next/server';
+import { makeCacheKey, getCached, setCache } from '@/lib/redis/cache.js';
+import { checkRateLimit, rateLimitResponse, getRateLimitIdentifier } from '@/lib/rate-limit/limiter.js';
+import { trackEvent, extractContext } from '@/lib/analytics/tracker.js';
+import { EVENTS } from '@/lib/analytics/constants.js';
 
 // System prompt for AI responses - designed for comprehensive, in-depth answers
 const SYSTEM_PROMPT = `You are Asteroid AI - an expert research assistant with deep expertise across all domains. Your goal is to provide COMPREHENSIVE, DETAILED, and ANALYTICAL answers that go FAR beyond simple summaries.
@@ -76,7 +80,7 @@ const PROVIDERS = {
     },
     openrouter: {
         url: 'https://openrouter.ai/api/v1/chat/completions',
-        model: 'google/gemini-2.0-flash-exp:free',
+        model: 'google/gemini-2.5-flash-lite',
         getHeaders: (apiKey) => ({
             'Authorization': `Bearer ${apiKey}`,
             'Content-Type': 'application/json',
@@ -205,11 +209,36 @@ function parseAIResponse(content) {
 
 export async function POST(request) {
     try {
+        // ── 1. Rate Limiting ─────────────────────────────
+        const { identifier, userId } = await getRateLimitIdentifier(request);
+        const rateLimit = await checkRateLimit(identifier, {
+            windowMs: 60_000,   // 1 minute
+            maxRequests: 3,     // 3 prompts per minute (free API tier)
+            prefix: 'rl:ai',
+        });
+
+        if (!rateLimit.allowed) {
+            return rateLimitResponse(rateLimit);
+        }
+
         const { query, searchResults, model = 'groq' } = await request.json();
+        const analyticsCtx = { ...extractContext(request), route: 'ai', userId };
 
         if (!query || !searchResults) {
             return NextResponse.json({ error: 'Query and search results are required' }, { status: 400 });
         }
+
+        // ── 2. Cache Lookup ──────────────────────────────
+        const cacheKey = makeCacheKey('ai', { query, model });
+        const cached = await getCached(cacheKey);
+
+        if (cached) {
+            trackEvent(EVENTS.CACHE_HIT, { query, model, route: 'ai' }, analyticsCtx);
+            return NextResponse.json({ ...cached, fromCache: true });
+        }
+
+        trackEvent(EVENTS.CACHE_MISS, { query, model, route: 'ai' }, analyticsCtx);
+        trackEvent(EVENTS.AI_PROMPT, { query, model }, analyticsCtx);
 
         // Build context from search results
         const context = searchResults.slice(0, 6).map((result, index) =>
@@ -236,44 +265,45 @@ IMPORTANT INSTRUCTIONS:
 
 Now provide a comprehensive, deeply researched answer that would satisfy an expert seeking thorough understanding:`;
 
-        // Get provider config
-        const providerConfig = PROVIDERS[model] || PROVIDERS.groq;
-        const apiKey = process.env[providerConfig.envKey];
+        // ── Provider selection with automatic failover ────────
+        // Try the requested provider first, then every other configured
+        // provider, so a single provider outage doesn't take answers down.
+        const preferredProvider = PROVIDERS[model] || PROVIDERS.groq;
+        const orderedProviders = [
+            preferredProvider,
+            ...Object.values(PROVIDERS).filter((p) => p !== preferredProvider),
+        ];
 
-        // Fallback response if no API key
-        if (!apiKey) {
-            console.log(`No API key found for ${model}, returning fallback response`);
+        let result = null;
+        let hadAnyKey = false;
+        for (const config of orderedProviders) {
+            const apiKey = process.env[config.envKey];
+            if (!apiKey) continue;
+            hadAnyKey = true;
+
+            if (config.isGemini) {
+                result = await callGemini(config, apiKey, SYSTEM_PROMPT, userMessage);
+            } else {
+                const messages = [
+                    { role: 'system', content: SYSTEM_PROMPT },
+                    { role: 'user', content: userMessage }
+                ];
+                result = await callOpenAICompatible(config, apiKey, messages);
+            }
+
+            if (result) break;
+            console.log(`Provider ${config.envKey} call failed — trying next provider`);
+            trackEvent(EVENTS.PROVIDER_FALLBACK, { model, reason: 'api_call_failed' }, analyticsCtx);
+        }
+
+        // Degrade gracefully only when every provider failed
+        if (!result) {
+            if (!hadAnyKey) {
+                console.log(`No API key found for ${model} (or any provider), returning fallback response`);
+            }
             const combinedContent = searchResults.slice(0, 3).map(r => r.description).join(' ');
             return NextResponse.json({
                 answer: combinedContent || 'No results found. Please add an API key for AI-powered answers.',
-                sections: [],
-                sources: searchResults.slice(0, 5).map((r, i) => ({
-                    number: i + 1,
-                    title: r.title,
-                    url: r.url,
-                    siteName: r.siteName,
-                })),
-                isAI: false,
-                model: 'none'
-            });
-        }
-
-        // Call the appropriate API
-        let result;
-        if (providerConfig.isGemini) {
-            result = await callGemini(providerConfig, apiKey, SYSTEM_PROMPT, userMessage);
-        } else {
-            const messages = [
-                { role: 'system', content: SYSTEM_PROMPT },
-                { role: 'user', content: userMessage }
-            ];
-            result = await callOpenAICompatible(providerConfig, apiKey, messages);
-        }
-
-        // Fallback if API call failed
-        if (!result) {
-            return NextResponse.json({
-                answer: searchResults.slice(0, 3).map(r => r.description).join(' '),
                 sections: [],
                 sources: searchResults.slice(0, 5).map((r, i) => ({
                     number: i + 1,
@@ -291,7 +321,7 @@ Now provide a comprehensive, deeply researched answer that would satisfy an expe
         // Parse the response
         const { summary, sections, keyPoints, relatedQuestions, rawContent } = parseAIResponse(result.content);
 
-        return NextResponse.json({
+        const responsePayload = {
             answer: summary || result.content,
             rawContent: rawContent,
             sections: sections,
@@ -306,10 +336,16 @@ Now provide a comprehensive, deeply researched answer that would satisfy an expe
             })),
             isAI: true,
             model: result.model
-        });
+        };
+
+        // ── 3. Cache Write ───────────────────────────────
+        await setCache(cacheKey, responsePayload, 'ai');
+
+        return NextResponse.json(responsePayload);
 
     } catch (error) {
         console.error('AI API error:', error);
+        trackEvent(EVENTS.API_ERROR, { error: error.message, route: 'ai' });
         return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
     }
 }
