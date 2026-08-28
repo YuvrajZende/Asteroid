@@ -23,15 +23,21 @@ import { colors, font, spacing } from '@/theme/theme';
 
 SplashScreen.preventAutoHideAsync().catch(() => {});
 
-const publishableKey = process.env.EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY;
+const publishableKey = process.env.EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY ?? '';
+// Publishable keys start with pk_ and encode the instance domain; anything
+// else (secret keys sk_…, placeholders) produces cryptic runtime errors.
+const keyLooksValid = /^pk_(test|live)_[A-Za-z0-9_-]+$/.test(publishableKey);
 
-function MissingKeyNotice() {
+function KeyErrorNotice() {
+  const missing = publishableKey.length === 0;
+  const foundPrefix = missing ? '' : `${publishableKey.slice(0, 8)}…`;
   return (
     <View style={styles.notice}>
-      <Text style={styles.noticeTitle}>Missing Clerk key</Text>
+      <Text style={styles.noticeTitle}>{missing ? 'Missing Clerk key' : 'Wrong Clerk key type'}</Text>
       <Text style={styles.noticeBody}>
-        Set EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY in mobile/.env.local (same Clerk
-        application as the web app), then restart with `npx expo start -c`.
+        {missing
+          ? 'Set EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY in mobile/.env, then restart with `npx expo start -c`.'
+          : `EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY starts with "${foundPrefix}" — that is not a publishable key. Open the Clerk Dashboard → API Keys and copy the key that starts with "pk_test_" (never the sk_ secret key), then restart with \`npx expo start -c\`.`}
       </Text>
     </View>
   );
@@ -70,11 +76,11 @@ function InnerLayout() {
 }
 
 export default function RootLayout() {
-  if (!publishableKey) {
+  if (!keyLooksValid) {
     return (
       <GestureHandlerRootView style={styles.root}>
         <StatusBar style="light" />
-        <MissingKeyNotice />
+        <KeyErrorNotice />
       </GestureHandlerRootView>
     );
   }
