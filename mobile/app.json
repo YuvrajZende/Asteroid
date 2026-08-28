@@ -30,8 +30,7 @@
         "expo-splash-screen",
         {
           "backgroundColor": "#191A1A",
-          "image": "./assets/images/splash-icon.png",
-          "imageWidth": 76
+          "image": null
         }
       ],
       "expo-secure-store",
@@ -39,7 +38,7 @@
     ],
     "experiments": {
       "typedRoutes": true,
-      "reactCompiler": true
+      "reactCompiler": false
     }
   }
 }

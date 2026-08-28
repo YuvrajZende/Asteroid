@@ -2,9 +2,13 @@
  * Animated splash — the "Asteroid" motif: two moons orbiting the mark on
  * elliptical paths. Routes by the gate once Clerk is loaded: signed-in or
  * guest → tabs, else the auth flow (v1 spec §4).
+ *
+ * Safety valves: a dev status line reports gate state, and if Clerk never
+ * loads (bad key, offline) a "Continue" affordance appears so the app can
+ * never deadlock on this screen.
  */
-import { useEffect } from 'react';
-import { StyleSheet, View } from 'react-native';
+import { useEffect, useState } from 'react';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useAuth } from '@clerk/expo';
 import Animated, {
@@ -17,12 +21,15 @@ import Animated, {
 import { Logo } from '@/components/brand/Logo';
 import { GlowBackground } from '@/components/ui/GlowBackground';
 import { useGuestStore } from '@/stores/useGuestStore';
-import { colors, radius } from '@/theme/theme';
+import { colors, font, radius, spacing, type } from '@/theme/theme';
+
+const GATE_TIMEOUT_MS = 6000;
 
 export default function Index() {
   const router = useRouter();
   const { isLoaded, isSignedIn } = useAuth();
   const isGuest = useGuestStore((s) => s.isGuest);
+  const [timedOut, setTimedOut] = useState(false);
 
   const orbit = useSharedValue(0);
   const glow = useSharedValue(0.7);
@@ -35,6 +42,12 @@ export default function Index() {
     );
     glow.value = withTiming(1, { duration: 900 });
   }, [orbit, glow]);
+
+  useEffect(() => {
+    if (isLoaded) return;
+    const t = setTimeout(() => setTimedOut(true), GATE_TIMEOUT_MS);
+    return () => clearTimeout(t);
+  }, [isLoaded]);
 
   useEffect(() => {
     if (!isLoaded) return; // hold the splash — no auth flash
@@ -66,6 +79,25 @@ export default function Index() {
         </View>
         <Logo size={120} />
       </View>
+
+      {timedOut && !isLoaded && (
+        <View style={styles.fallback}>
+          <Text style={styles.fallbackText}>Auth is taking a while to load</Text>
+          <Pressable
+            accessibilityRole="button"
+            onPress={() => router.replace('/(auth)/welcome')}
+            style={({ pressed }) => [styles.fallbackButton, { opacity: pressed ? 0.8 : 1 }]}
+          >
+            <Text style={styles.fallbackButtonText}>Continue to sign in</Text>
+          </Pressable>
+        </View>
+      )}
+
+      {__DEV__ && (
+        <Text style={styles.devStatus}>
+          clerk {isLoaded ? '✓' : '…'} · guest {isGuest ? '✓' : '—'}
+        </Text>
+      )}
     </View>
   );
 }
@@ -95,5 +127,23 @@ const styles = StyleSheet.create({
     borderRadius: 4,
     backgroundColor: colors.textSecondary,
     marginTop: 22,
+  },
+  fallback: { alignItems: 'center', gap: spacing(1.5), marginTop: spacing(4) },
+  fallbackText: { ...type.caption },
+  fallbackButton: {
+    borderWidth: 1,
+    borderColor: colors.border,
+    backgroundColor: colors.surface,
+    borderRadius: radius.button,
+    paddingHorizontal: spacing(3),
+    paddingVertical: spacing(1.5),
+  },
+  fallbackButtonText: { fontFamily: font.bodySemi, fontSize: 14, color: colors.text },
+  devStatus: {
+    position: 'absolute',
+    bottom: spacing(3),
+    fontFamily: font.body,
+    fontSize: 11,
+    color: colors.textSecondary,
   },
 });
