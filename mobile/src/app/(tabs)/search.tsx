@@ -20,6 +20,7 @@ import { colors, font, radius, spacing, type } from '@/theme/theme';
 export default function SearchScreen() {
   const router = useRouter();
   const [query, setQuery] = useState('');
+  const [focused, setFocused] = useState(false);
   const [pickerOpen, setPickerOpen] = useState(false);
   const model = useSettingsStore((s) => s.model);
   const recents = useSearchStore((s) => s.recents);
@@ -56,7 +57,7 @@ export default function SearchScreen() {
       <View style={styles.hero}>
         <Text style={styles.tagline}>What do you want to understand?</Text>
 
-        <View style={styles.inputWrap}>
+        <View style={[styles.inputWrap, { borderColor: focused ? colors.accent : colors.border }]}>
           <TextInput
             value={query}
             onChangeText={setQuery}
@@ -64,6 +65,8 @@ export default function SearchScreen() {
             placeholderTextColor={colors.textSecondary}
             multiline
             style={styles.input}
+            onFocus={() => setFocused(true)}
+            onBlur={() => setFocused(false)}
             onSubmitEditing={submit}
             returnKeyType="search"
           />

@@ -44,6 +44,20 @@ export const radius = {
   sheet: 32,
 } as const;
 
+/** Syntax-highlight palette for code blocks (dark, Night-Owl inspired). */
+export const code = {
+  plain: '#D6DEEB',
+  keyword: '#C792EA',
+  string: '#C3E88D',
+  number: '#F78C6C',
+  comment: '#5F7A7A',
+  func: '#82AAFF',
+  type: '#FFCB6B',
+  punct: '#8B9CAE',
+  surface: '#141719',
+  chip: '#1F2427',
+} as const;
+
 /** 8-point spacing grid */
 export const spacing = (n: number) => n * 8;
 

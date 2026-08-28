@@ -6,6 +6,7 @@
 import { useEffect } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { Stack } from 'expo-router';
+import { StatusBar } from 'expo-status-bar';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { ClerkProvider, useAuth } from '@clerk/clerk-expo';
 import { tokenCache } from '@clerk/clerk-expo/token-cache';
@@ -72,6 +73,7 @@ export default function RootLayout() {
   if (!publishableKey) {
     return (
       <GestureHandlerRootView style={styles.root}>
+        <StatusBar style="light" />
         <MissingKeyNotice />
       </GestureHandlerRootView>
     );
@@ -79,6 +81,7 @@ export default function RootLayout() {
 
   return (
     <GestureHandlerRootView style={styles.root}>
+      <StatusBar style="light" />
       <ClerkProvider publishableKey={publishableKey} tokenCache={tokenCache}>
         <InnerLayout />
       </ClerkProvider>

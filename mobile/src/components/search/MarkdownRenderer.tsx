@@ -6,6 +6,7 @@
 import React from 'react';
 import Markdown from 'react-native-markdown-display';
 import { Linking } from 'react-native';
+import { CodeBlock } from '@/components/search/CodeBlock';
 import { colors, font, radius, spacing } from '@/theme/theme';
 import type { SourceRef } from '@/types/api';
 
@@ -24,9 +25,21 @@ function linkifyCitations(text: string, sources: SourceRef[]): string {
 }
 
 export function MarkdownRenderer({ content, sources = [] }: MarkdownRendererProps) {
+  const rules = {
+    // Premium fenced code: syntax-highlighted card with copy button
+    fence: (node: { key?: string; sourceInfo?: string; content?: string }) => (
+      <CodeBlock
+        key={node.key}
+        codeText={(node.content ?? '').replace(/\n$/, '')}
+        language={node.sourceInfo}
+      />
+    ),
+  };
+
   return (
     <Markdown
       style={mdStyles}
+      rules={rules}
       onLinkPress={(url) => {
         Linking.openURL(url).catch(() => {});
         return false;

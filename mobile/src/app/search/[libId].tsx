@@ -12,14 +12,18 @@ import { useLocalSearchParams, useRouter, useFocusEffect } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ChevronLeft, ExternalLink } from 'lucide-react-native';
 import { useUser } from '@clerk/clerk-expo';
+import Animated, { FadeInDown } from 'react-native-reanimated';
 import { SkeletonCard } from '@/components/ui/SkeletonCard';
+import { PressableScale } from '@/components/ui/PressableScale';
 import { GlowBackground } from '@/components/ui/GlowBackground';
 import { RateLimitCard } from '@/components/search/RateLimitCard';
 import { MarkdownRenderer } from '@/components/search/MarkdownRenderer';
+import { CodeBlock } from '@/components/search/CodeBlock';
 import { KeyPointRow } from '@/components/search/KeyPointRow';
 import { ImageCarousel } from '@/components/search/ImageCarousel';
 import { QuestionChip } from '@/components/search/QuestionChip';
 import { SourceBadge } from '@/components/search/SourceBadge';
+import { SocialSection } from '@/components/search/SocialSection';
 import { isCodeRequest } from '@/services/intentDetector';
 import { insertLibraryEntry } from '@/services/supabase';
 import { runSearch } from '@/services/runSearch';
@@ -157,7 +161,13 @@ export default function ResultScreen() {
         )}
 
         {conversation?.stage === 'done' && conversation.type === 'search' && (
-          <SearchResult search={search} ai={ai} answerText={answerText} sources={sources} />
+          <SearchResult
+            query={conversation.query}
+            search={search}
+            ai={ai}
+            answerText={answerText}
+            sources={sources}
+          />
         )}
       </ScrollView>
     </SafeAreaView>
@@ -165,11 +175,13 @@ export default function ResultScreen() {
 }
 
 function SearchResult({
+  query,
   search,
   ai,
   answerText,
   sources,
 }: {
+  query: string;
   search?: import('@/types/api').SearchResponse;
   ai?: import('@/types/api').AIResponse | null;
   answerText: string;
@@ -197,9 +209,9 @@ function SearchResult({
       )}
 
       {!!ai && !!answerText && (
-        <View style={styles.answerCard}>
+        <Animated.View entering={FadeInDown.duration(400)} style={styles.answerCard}>
           <MarkdownRenderer content={answerText} sources={sources} />
-        </View>
+        </Animated.View>
       )}
 
       {!!ai?.keyPoints?.length && (
@@ -207,7 +219,9 @@ function SearchResult({
           <Text style={styles.sectionTitle}>Key takeaways</Text>
           <View style={styles.keyPoints}>
             {ai.keyPoints.slice(0, 5).map((point, i) => (
-              <KeyPointRow key={i} text={point} index={i} />
+              <Animated.View key={i} entering={FadeInDown.delay(i * 70).duration(380)}>
+                <KeyPointRow text={point} index={i} />
+              </Animated.View>
             ))}
           </View>
         </View>
@@ -270,9 +284,9 @@ function SearchResult({
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Web results</Text>
           {webResults.slice(0, 8).map((result, i) => (
-            <Pressable
+            <PressableScale
               key={i}
-              style={({ pressed }) => [styles.webRow, { opacity: pressed ? 0.8 : 1 }]}
+              style={styles.webRow}
               onPress={() => result.url && Linking.openURL(result.url).catch(() => {})}
             >
               <View style={styles.webRowText}>
@@ -292,10 +306,12 @@ function SearchResult({
                   </Text>
                 )}
               </View>
-            </Pressable>
+            </PressableScale>
           ))}
         </View>
       )}
+
+      {!!query && <SocialSection query={query} />}
     </>
   );
 }
@@ -318,12 +334,12 @@ function CodeResult({
         </View>
       )}
       {codeBlocks.map((block, i) => (
-        <View key={i} style={styles.codeCard}>
-          <Text style={styles.codeLanguage}>{block.language ?? block.syntax ?? 'Code'}</Text>
-          <Text style={styles.codeText} selectable>
-            {block.code}
-          </Text>
-        </View>
+        <CodeBlock
+          key={i}
+          codeText={block.code ?? ''}
+          language={block.language}
+          syntax={block.syntax}
+        />
       ))}
       {!!explanation && (
         <View style={styles.answerCard}>
@@ -407,14 +423,4 @@ const styles = StyleSheet.create({
   webTitle: { fontFamily: font.bodySemi, fontSize: 15, color: colors.text },
   webMeta: { flexDirection: 'row', alignItems: 'center' },
   webDescription: { fontFamily: font.body, fontSize: 13, lineHeight: 19, color: colors.textSecondary },
-  codeCard: {
-    backgroundColor: colors.elevated,
-    borderRadius: radius.card,
-    borderWidth: 1,
-    borderColor: colors.border,
-    padding: spacing(2.5),
-    gap: spacing(1),
-  },
-  codeLanguage: { ...type.caption, color: colors.accentBright },
-  codeText: { fontFamily: 'monospace', fontSize: 13, lineHeight: 20, color: colors.text },
 });
