@@ -6,7 +6,8 @@
 import { useState } from 'react';
 import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useRouter } from 'expo-router';
-import { useSignIn } from '@clerk/clerk-expo';
+// Legacy imperative hooks — the new signal API lands with the core-3 migration
+import { useSignIn } from '@clerk/expo/legacy';
 import { Button } from '@/components/ui/Button';
 import { TextField } from '@/components/ui/TextField';
 import { PasswordField } from '@/components/ui/PasswordField';

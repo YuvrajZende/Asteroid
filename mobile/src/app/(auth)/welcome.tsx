@@ -5,7 +5,7 @@
 import { useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { useRouter } from 'expo-router';
-import { useOAuth } from '@clerk/clerk-expo';
+import { useOAuth } from '@clerk/expo';
 import * as Haptics from 'expo-haptics';
 import { Logo } from '@/components/brand/Logo';
 import { GoogleG } from '@/components/brand/GoogleG';

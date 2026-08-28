@@ -6,7 +6,8 @@
 import { useCallback, useEffect, useState } from 'react';
 import { KeyboardAvoidingView, Platform, StyleSheet, Text, View } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { useSignIn, useSignUp } from '@clerk/clerk-expo';
+// Legacy imperative hooks — the new signal API lands with the core-3 migration
+import { useSignIn, useSignUp } from '@clerk/expo/legacy';
 import * as Haptics from 'expo-haptics';
 import { OtpInput } from '@/components/ui/OtpInput';
 import { Button } from '@/components/ui/Button';

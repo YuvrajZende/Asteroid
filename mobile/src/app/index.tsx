@@ -6,7 +6,7 @@
 import { useEffect } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { useRouter } from 'expo-router';
-import { useAuth } from '@clerk/clerk-expo';
+import { useAuth } from '@clerk/expo';
 import Animated, {
   Easing,
   useAnimatedStyle,

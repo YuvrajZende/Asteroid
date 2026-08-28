@@ -9,7 +9,7 @@ import { FlatList, Pressable, RefreshControl, StyleSheet, Text, View } from 'rea
 import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Library as LibraryIcon, X } from 'lucide-react-native';
-import { useUser } from '@clerk/clerk-expo';
+import { useUser } from '@clerk/expo';
 import { deleteLibraryEntry, fetchLibrary } from '@/services/supabase';
 import { useSearchStore } from '@/stores/useSearchStore';
 import { useGuestStore } from '@/stores/useGuestStore';

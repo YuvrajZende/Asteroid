@@ -11,7 +11,7 @@ import { Linking, Pressable, ScrollView, StyleSheet, Text, View } from 'react-na
 import { useLocalSearchParams, useRouter, useFocusEffect } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ChevronLeft, ExternalLink } from 'lucide-react-native';
-import { useUser } from '@clerk/clerk-expo';
+import { useUser } from '@clerk/expo';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import { SkeletonCard } from '@/components/ui/SkeletonCard';
 import { PressableScale } from '@/components/ui/PressableScale';

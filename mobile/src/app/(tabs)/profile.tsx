@@ -7,7 +7,7 @@ import { useEffect, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useAuth, useUser } from '@clerk/clerk-expo';
+import { useAuth, useUser } from '@clerk/expo';
 import { ModelPicker } from '@/components/ui/ModelPicker';
 import { Button } from '@/components/ui/Button';
 import { GlowBackground } from '@/components/ui/GlowBackground';
