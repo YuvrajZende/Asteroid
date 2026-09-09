@@ -1,14 +1,37 @@
 'use server'
 
 import { NextResponse } from 'next/server';
+import { makeCacheKey, getCached, setCache } from '@/lib/redis/cache.js';
+import { checkRateLimit, rateLimitResponse, getRateLimitIdentifier } from '@/lib/rate-limit/limiter.js';
+import { trackEvent, extractContext } from '@/lib/analytics/tracker.js';
+import { EVENTS } from '@/lib/analytics/constants.js';
 
 export async function POST(request) {
     try {
+        // ── Rate Limiting ─────────────────────────────────
+        const { identifier, userId } = await getRateLimitIdentifier(request);
+        const rateLimit = await checkRateLimit(identifier, {
+            windowMs: 60_000,
+            maxRequests: 10,
+            prefix: 'rl:social',
+        });
+        if (!rateLimit.allowed) return rateLimitResponse(rateLimit);
+
         const { query } = await request.json();
+        const analyticsCtx = { ...extractContext(request), route: 'social', userId };
 
         if (!query) {
             return NextResponse.json({ error: 'Query is required' }, { status: 400 });
         }
+
+        // ── Cache Lookup ──────────────────────────────────
+        const cacheKey = makeCacheKey('social', { query });
+        const cached = await getCached(cacheKey);
+        if (cached) {
+            trackEvent(EVENTS.CACHE_HIT, { query, route: 'social' }, analyticsCtx);
+            return NextResponse.json({ ...cached, fromCache: true });
+        }
+        trackEvent(EVENTS.CACHE_MISS, { query, route: 'social' }, analyticsCtx);
 
         const SERPER_API_KEY = process.env.SERPER_API_KEY;
 
@@ -66,14 +89,20 @@ export async function POST(request) {
             })) || [];
         }
 
-        return NextResponse.json({
+        // ── Cache Write ───────────────────────────────────
+        const responsePayload = {
             reddit: redditPosts,
             twitter: twitterPosts,
             total: redditPosts.length + twitterPosts.length,
-        });
+        };
+        await setCache(cacheKey, responsePayload, 'social');
+        trackEvent(EVENTS.SOCIAL_SEARCH, { query, total: responsePayload.total }, analyticsCtx);
+
+        return NextResponse.json(responsePayload);
 
     } catch (error) {
         console.error('Social search error:', error);
+        trackEvent(EVENTS.API_ERROR, { error: error.message, route: 'social' });
         return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
     }
 }

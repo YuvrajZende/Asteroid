@@ -1,5 +1,9 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
+import { makeCacheKey, getCached, setCache } from '@/lib/redis/cache.js';
+import { checkRateLimit, rateLimitResponse, getRateLimitIdentifier } from '@/lib/rate-limit/limiter.js';
+import { trackEvent, extractContext } from '@/lib/analytics/tracker.js';
+import { EVENTS } from '@/lib/analytics/constants.js';
 
 const CACHE_DURATION_MS = 4 * 60 * 60 * 1000; // 4 hours in milliseconds
 const STALE_THRESHOLD_MS = 30 * 60 * 1000; // 30 minutes - after this, refresh in background
@@ -26,7 +30,7 @@ function getCacheAge(updatedAt) {
     return Date.now() - new Date(updatedAt).getTime();
 }
 
-async function getCache(category) {
+async function getApiCache(category) {
     try {
         const { data, error } = await supabase
             .from('ApiCache')
@@ -41,7 +45,7 @@ async function getCache(category) {
     }
 }
 
-async function setCache(category, responseData) {
+async function setApiCache(category, responseData) {
     try {
         await supabase
             .from('ApiCache')
@@ -70,57 +74,143 @@ async function fetchWithTimeout(url, timeoutMs) {
     }
 }
 
-// Fetch fresh news from API
+// Fetch fresh news from API with multi-provider fallbacks
 async function fetchFreshNews(category) {
-    const GNEWS_API_KEY = process.env.GNEWS_API_KEY;
-
-    if (!GNEWS_API_KEY) {
-        throw new Error('GNews API key not configured');
-    }
-
     const gnewsCategory = CATEGORY_MAP[category] || 'general';
-    const response = await fetchWithTimeout(
-        `https://gnews.io/api/v4/top-headlines?category=${gnewsCategory}&country=in&lang=en&max=12&apikey=${GNEWS_API_KEY}`,
-        API_TIMEOUT_MS
-    );
+    let articles = [];
 
-    if (!response.ok) {
-        throw new Error(`API returned ${response.status}`);
+    // 1. Try GNews
+    const GNEWS_API_KEY = process.env.GNEWS_API_KEY;
+    if (GNEWS_API_KEY) {
+        try {
+            const response = await fetchWithTimeout(
+                `https://gnews.io/api/v4/top-headlines?category=${gnewsCategory}&lang=en&max=12&apikey=${GNEWS_API_KEY}`,
+                API_TIMEOUT_MS
+            );
+            if (response.ok) {
+                const data = await response.json();
+                articles = data.articles?.map((article, index) => ({
+                    id: index,
+                    title: article.title,
+                    description: article.description,
+                    url: article.url,
+                    image: article.image,
+                    source: article.source?.name,
+                    publishedAt: article.publishedAt,
+                })).filter(article => article.title) || [];
+            }
+        } catch (err) {
+            console.warn('GNews fetch failed, trying fallback:', err.message);
+        }
     }
 
-    const data = await response.json();
+    // 2. Try NewsAPI as fallback if GNews returned no articles
+    if (articles.length === 0) {
+        const NEWS_API_KEY = process.env.NEWS_API_KEY;
+        if (NEWS_API_KEY) {
+            try {
+                const response = await fetchWithTimeout(
+                    `https://newsapi.org/v2/top-headlines?category=${gnewsCategory}&language=en&pageSize=12&apiKey=${NEWS_API_KEY}`,
+                    API_TIMEOUT_MS
+                );
+                if (response.ok) {
+                    const data = await response.json();
+                    articles = data.articles?.map((article, index) => ({
+                        id: index,
+                        title: article.title,
+                        description: article.description,
+                        url: article.url,
+                        image: article.urlToImage,
+                        source: article.source?.name,
+                        publishedAt: article.publishedAt,
+                    })).filter(article => article.title && !article.title.includes('[Removed]')) || [];
+                }
+            } catch (err) {
+                console.warn('NewsAPI fetch failed, trying Serper fallback:', err.message);
+            }
+        }
+    }
 
-    // Transform GNews response to our format
-    const articles = data.articles?.map((article, index) => ({
-        id: index,
-        title: article.title,
-        description: article.description,
-        url: article.url,
-        image: article.image,
-        source: article.source?.name,
-        publishedAt: article.publishedAt,
-    })).filter(article => article.title) || [];
+    // 3. Try Serper News as fallback if still no articles
+    if (articles.length === 0) {
+        const SERPER_API_KEY = process.env.SERPER_API_KEY;
+        if (SERPER_API_KEY) {
+            try {
+                const response = await fetchWithTimeout(
+                    'https://google.serper.dev/news',
+                    {
+                        method: 'POST',
+                        headers: {
+                            'X-API-KEY': SERPER_API_KEY,
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({ q: `top ${category} news`, num: 12 }),
+                    },
+                    API_TIMEOUT_MS
+                );
+                if (response.ok) {
+                    const data = await response.json();
+                    articles = data.news?.map((item, index) => ({
+                        id: index,
+                        title: item.title,
+                        description: item.snippet,
+                        url: item.link,
+                        image: item.imageUrl,
+                        source: item.source,
+                        publishedAt: item.date || new Date().toISOString(),
+                    })).filter(article => article.title) || [];
+                }
+            } catch (err) {
+                console.warn('Serper news fallback failed:', err.message);
+            }
+        }
+    }
+
+    if (articles.length === 0) {
+        throw new Error('No news articles found across providers');
+    }
 
     const responseData = {
         articles,
-        totalResults: data.totalArticles || articles.length,
+        totalResults: articles.length,
         category,
         fetchedAt: new Date().toISOString()
     };
 
     // Cache the response into Supabase
-    await setCache(category, responseData);
+    await setApiCache(category, responseData);
 
     return responseData;
 }
 
 export async function GET(request) {
     try {
+        // ── Rate Limiting ─────────────────────────────────
+        const { identifier, userId } = await getRateLimitIdentifier(request);
+        const rateLimit = await checkRateLimit(identifier, {
+            windowMs: 60_000,
+            maxRequests: 10,
+            prefix: 'rl:news',
+        });
+        if (!rateLimit.allowed) return rateLimitResponse(rateLimit);
+
         const { searchParams } = new URL(request.url);
         const category = searchParams.get('category') || 'general';
         const forceRefresh = searchParams.get('refresh') === 'true';
+        const analyticsCtx = { ...extractContext(request), route: 'news', userId };
 
-        const cachedRecord = await getCache(category);
+        // ── Redis Cache Lookup (fast path, 3 min TTL) ────
+        const cacheKey = makeCacheKey('news', { category });
+        if (!forceRefresh) {
+            const cached = await getCached(cacheKey);
+            if (cached) {
+                trackEvent(EVENTS.CACHE_HIT, { category, route: 'news' }, analyticsCtx);
+                return NextResponse.json({ ...cached, fromCache: true });
+            }
+        }
+        trackEvent(EVENTS.CACHE_MISS, { category, route: 'news' }, analyticsCtx);
+
+        const cachedRecord = await getApiCache(category);
         const cachedData = cachedRecord ? cachedRecord.data : null;
         const cacheAge = cachedRecord ? getCacheAge(cachedRecord.created_at) : Infinity;
 
@@ -143,34 +233,21 @@ export async function GET(request) {
             });
         }
 
-        const GNEWS_API_KEY = process.env.GNEWS_API_KEY;
-
-        if (!GNEWS_API_KEY) {
-            // Return stale cache if available
-            if (cachedData) {
-                return NextResponse.json({
-                    ...cachedData,
-                    cached: true,
-                    stale: true,
-                    error: 'API key not configured, showing cached data'
-                });
-            }
-            return NextResponse.json({
-                error: 'GNews API key not configured. Add GNEWS_API_KEY to .env.local',
-                articles: []
-            }, { status: 500 });
-        }
-
-        console.log(`Fetching fresh news for ${category} from GNews`);
+        console.log(`Fetching news for ${category}`);
 
         try {
             const responseData = await fetchFreshNews(category);
+
+            // ── Redis Cache Write ─────────────────────────
+            await setCache(cacheKey, responseData, 'news');
+            trackEvent(EVENTS.NEWS_FETCH, { category, resultCount: responseData.articles.length }, analyticsCtx);
+
             return NextResponse.json({
                 ...responseData,
                 cached: false
             });
         } catch (fetchError) {
-            console.error('GNews API error:', fetchError.message);
+            console.error('News API fetch error:', fetchError.message);
 
             // If API fails but we have any cache (even stale), use it
             if (cachedData) {
@@ -191,6 +268,7 @@ export async function GET(request) {
 
     } catch (error) {
         console.error('News API error:', error);
+        trackEvent(EVENTS.API_ERROR, { error: error.message, route: 'news' });
         return NextResponse.json({
             error: 'Internal server error',
             articles: []

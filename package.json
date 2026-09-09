@@ -6,7 +6,13 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "worker": "node lib/analytics/worker.js",
+    "test:rate-limit": "node scripts/test-rate-limit.js",
+    "test:cache": "node scripts/test-cache.js",
+    "docker:up": "docker-compose up --build -d",
+    "docker:down": "docker-compose down",
+    "docker:logs": "docker-compose logs -f"
   },
   "dependencies": {
     "@clerk/nextjs": "^6.38.3",
@@ -23,6 +29,7 @@
     "@supabase/supabase-js": "^2.78.0",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
+    "ioredis": "^5.11.1",
     "lucide-react": "^0.548.0",
     "moment": "^2.30.1",
     "next": "^16.1.6",

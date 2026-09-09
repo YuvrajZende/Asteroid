@@ -16,6 +16,7 @@ A Next.js-powered AI search and research application with user authentication an
 - **Framework**: Next.js 15
 - **Authentication**: Clerk
 - **Database**: Supabase
+- **Cache & Rate-Limiting**: Redis (ioredis)
 - **UI Components**: shadcn/ui
 - **Styling**: Tailwind CSS
 - **Icons**: Lucide React
@@ -62,6 +63,23 @@ CLERK_SECRET_KEY=your_clerk_secret_key_here
 # Supabase Database
 NEXT_PUBLIC_SUPABASE_URL=your_supabase_url_here
 NEXT_PUBLIC_SUPABASE_KEY=your_supabase_anon_key_here
+
+# Redis (caching + rate limiting) — defaults to redis://localhost:6379
+REDIS_URL=redis://localhost:6379
+
+# Search & News providers
+SERPER_API_KEY=your_serper_api_key_here
+SERPAPI_KEY=your_serpapi_key_here        # Research mode (Google Scholar)
+GNEWS_API_KEY=your_gnews_api_key_here
+
+# LLM providers (configure at least one — Groq is the default)
+GROQ_API_KEY=your_groq_api_key_here
+GEMINI_API_KEY=your_gemini_api_key_here
+OPENROUTER_API_KEY=your_openrouter_api_key_here
+ZAI_API_KEY=your_zai_api_key_here
+
+# Analytics worker only (service-role key, bypasses RLS on analytics_events)
+SUPABASE_SERVICE_ROLE_KEY=your_service_role_key_here
 ```
 
 #### Getting Your Keys:
@@ -99,7 +117,16 @@ CREATE TABLE Library (
   libId TEXT UNIQUE,
   created_at TIMESTAMP DEFAULT NOW()
 );
+
+-- News/Research API fallback cache (used by /api/news and /api/research)
+CREATE TABLE "ApiCache" (
+  id TEXT PRIMARY KEY,
+  data JSONB,
+  created_at TIMESTAMP DEFAULT NOW()
+);
 ```
+
+The analytics pipeline needs one more table — run [`supabase/analytics_events.sql`](supabase/analytics_events.sql) in the Supabase SQL editor (it enables RLS, so the analytics worker uses `SUPABASE_SERVICE_ROLE_KEY`).
 
 ### 5. Run the Development Server
 
@@ -115,6 +142,10 @@ Open [http://localhost:3000](http://localhost:3000) with your browser to see the
 - `npm run build` - Build for production
 - `npm run start` - Start production server
 - `npm run lint` - Run ESLint
+- `npm run worker` - Start the analytics worker (drains Redis queue into Supabase)
+- `npm run test:cache` - Verify Redis caching (requires dev server + Redis)
+- `npm run test:rate-limit` - Verify rate limiting (requires dev server + Redis)
+- `npm run docker:up` / `docker:down` / `docker:logs` - Full stack via Docker (web + Redis + analytics worker)
 
 ## Project Structure
 

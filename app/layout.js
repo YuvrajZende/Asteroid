@@ -1,15 +1,15 @@
-import { Inter, JetBrains_Mono, Libre_Baskerville } from "next/font/google";
+import { Inter, JetBrains_Mono, Lora } from "next/font/google";
 import "./globals.css";
 import { ClerkProvider, ClerkLoaded } from "@clerk/nextjs";
 import { ThemeProvider } from "@/context/ThemeContext";
 import { SearchProvider } from "@/context/SearchContext";
 import Provider from "./provider.jsx";
 
-// Serif font for headings (Perplexity-style marketing emotion)
-const libreBaskerville = Libre_Baskerville({
+// Lora font for Titles, Section headings, and Important editorial text
+const lora = Lora({
   variable: "--font-serif",
   subsets: ["latin"],
-  weight: ["400", "700"],
+  weight: ["400", "500", "600", "700"],
   display: "swap",
 });
 
@@ -163,7 +163,7 @@ export default function RootLayout({ children }) {
     <ClerkProvider appearance={clerkAppearance}>
       <html lang="en" suppressHydrationWarning>
         <body
-          className={`${libreBaskerville.variable} ${inter.variable} ${jetbrainsMono.variable} antialiased`}
+          className={`${lora.variable} ${inter.variable} ${jetbrainsMono.variable} antialiased`}
         >
           <ThemeProvider>
             <ClerkLoaded>

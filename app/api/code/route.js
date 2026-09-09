@@ -1,4 +1,8 @@
 import { NextResponse } from 'next/server';
+import { makeCacheKey, getCached, setCache } from '@/lib/redis/cache.js';
+import { checkRateLimit, rateLimitResponse, getRateLimitIdentifier } from '@/lib/rate-limit/limiter.js';
+import { trackEvent, extractContext } from '@/lib/analytics/tracker.js';
+import { EVENTS } from '@/lib/analytics/constants.js';
 
 // System prompt for code generation
 const CODE_SYSTEM_PROMPT = `You are an expert coding assistant. Generate clean, well-documented, and efficient code.
@@ -69,29 +73,22 @@ YOUR RESPONSE MUST FOLLOW THIS EXACT FORMAT:
 ## How It's Fixed
 [Brief explanation of the fix]`;
 
-// Provider configurations (reusing from ai route)
+// Provider configurations (reusing from ai route with working models)
 const PROVIDERS = {
     groq: {
         url: 'https://api.groq.com/openai/v1/chat/completions',
-        model: 'llama-3.3-70b-versatile',
+        models: ['qwen/qwen3.8-27b', 'openai/gpt-oss-120b', 'openai/gpt-oss-20b', 'groq/compound'],
+        model: 'qwen/qwen3.8-27b',
         getHeaders: (apiKey) => ({
             'Authorization': `Bearer ${apiKey}`,
             'Content-Type': 'application/json',
         }),
         envKey: 'GROQ_API_KEY'
     },
-    gemini: {
-        url: 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent',
-        getHeaders: (apiKey) => ({
-            'Content-Type': 'application/json',
-            'x-goog-api-key': apiKey,
-        }),
-        envKey: 'GEMINI_API_KEY',
-        isGemini: true
-    },
     openrouter: {
         url: 'https://openrouter.ai/api/v1/chat/completions',
-        model: 'google/gemini-2.0-flash-exp:free',
+        models: ['meta-llama/llama-3.3-70b-instruct', 'deepseek/deepseek-chat', 'qwen/qwen-2.5-72b-instruct'],
+        model: 'meta-llama/llama-3.3-70b-instruct',
         getHeaders: (apiKey) => ({
             'Authorization': `Bearer ${apiKey}`,
             'Content-Type': 'application/json',
@@ -99,32 +96,49 @@ const PROVIDERS = {
             'X-Title': 'Asteroid Code Generator'
         }),
         envKey: 'OPENROUTER_API_KEY'
+    },
+    gemini: {
+        url: 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent',
+        models: ['gemini-2.0-flash', 'gemini-1.5-flash'],
+        model: 'gemini-2.0-flash',
+        getHeaders: (apiKey) => ({
+            'Content-Type': 'application/json',
+            'x-goog-api-key': apiKey,
+        }),
+        envKey: 'GEMINI_API_KEY',
+        isGemini: true
     }
 };
 
-async function callOpenAICompatible(config, apiKey, messages) {
-    const response = await fetch(config.url, {
-        method: 'POST',
-        headers: config.getHeaders(apiKey),
-        body: JSON.stringify({
-            model: config.model,
-            messages: messages,
-            temperature: 0.3, // Lower temperature for more consistent code
-            max_tokens: 4000,
-        }),
-    });
+async function callOpenAICompatible(config, apiKey, messages, modelOverride = null) {
+    const modelToUse = modelOverride || config.model;
+    try {
+        const response = await fetch(config.url, {
+            method: 'POST',
+            headers: config.getHeaders(apiKey),
+            body: JSON.stringify({
+                model: modelToUse,
+                messages: messages,
+                temperature: 0.3, // Lower temperature for more consistent code
+                max_tokens: 4000,
+            }),
+        });
 
-    if (!response.ok) {
-        const errorText = await response.text();
-        console.error(`${config.envKey} API error:`, errorText);
+        if (!response.ok) {
+            const errorText = await response.text();
+            console.error(`${config.envKey} (${modelToUse}) API error:`, errorText);
+            return null;
+        }
+
+        const data = await response.json();
+        return {
+            content: data.choices[0]?.message?.content || '',
+            model: data.model || modelToUse
+        };
+    } catch (err) {
+        console.error(`${config.envKey} (${modelToUse}) fetch error:`, err.message);
         return null;
     }
-
-    const data = await response.json();
-    return {
-        content: data.choices[0]?.message?.content || '',
-        model: data.model || config.model
-    };
 }
 
 async function callGemini(config, apiKey, systemPrompt, userMessage) {
@@ -196,53 +210,75 @@ function parseCodeResponse(content) {
 
 export async function POST(request) {
     try {
+        // ── Rate Limiting ─────────────────────────────────
+        const { identifier, userId } = await getRateLimitIdentifier(request);
+        const rateLimit = await checkRateLimit(identifier, {
+            windowMs: 60_000,
+            maxRequests: 3,
+            prefix: 'rl:code',
+        });
+        if (!rateLimit.allowed) return rateLimitResponse(rateLimit);
+
         const { query, isFixMode = false, model = 'groq' } = await request.json();
+        const analyticsCtx = { ...extractContext(request), route: 'code', userId };
 
         if (!query) {
             return NextResponse.json({ error: 'Query is required' }, { status: 400 });
         }
 
+        // ── Cache Lookup ──────────────────────────────────
+        const cacheKey = makeCacheKey('code', { query, model, isFixMode });
+        const cached = await getCached(cacheKey);
+        if (cached) {
+            trackEvent(EVENTS.CACHE_HIT, { query, route: 'code' }, analyticsCtx);
+            return NextResponse.json({ ...cached, fromCache: true });
+        }
+        trackEvent(EVENTS.CACHE_MISS, { query, route: 'code' }, analyticsCtx);
+        trackEvent(EVENTS.CODE_REQUEST, { query, model, isFixMode }, analyticsCtx);
+
         // Select appropriate system prompt
         const systemPrompt = isFixMode ? FIX_SYSTEM_PROMPT : CODE_SYSTEM_PROMPT;
 
-        // Get provider config
-        const providerConfig = PROVIDERS[model] || PROVIDERS.groq;
-        const apiKey = process.env[providerConfig.envKey];
+        // ── Provider selection with automatic failover ────────
+        // Try the requested provider first, then every other configured
+        // provider, so a single provider outage doesn't take code mode down.
+        const preferredProvider = PROVIDERS[model] || PROVIDERS.groq;
+        const orderedProviders = [
+            preferredProvider,
+            ...Object.values(PROVIDERS).filter((p) => p !== preferredProvider),
+        ];
 
-        if (!apiKey) {
-            // Try fallback providers
-            for (const [providerName, config] of Object.entries(PROVIDERS)) {
-                const key = process.env[config.envKey];
-                if (key) {
-                    console.log(`Using fallback provider: ${providerName}`);
-                    const result = await generateCode(config, key, systemPrompt, query);
-                    if (result) {
-                        return NextResponse.json(result);
-                    }
-                }
+        let result = null;
+        for (const config of orderedProviders) {
+            const apiKey = process.env[config.envKey];
+            if (!apiKey) continue;
+            
+            const modelsToTry = config.models || [config.model];
+            for (const candidateModel of modelsToTry) {
+                result = await generateCode({ ...config, model: candidateModel }, apiKey, systemPrompt, query);
+                if (result) break;
             }
-
-            return NextResponse.json({
-                error: 'No AI API key configured',
-                isCodeMode: true,
-                codeBlocks: []
-            }, { status: 500 });
+            if (result) break;
+            console.log(`Provider ${config.envKey} call failed — trying next provider`);
+            trackEvent(EVENTS.PROVIDER_FALLBACK, { model, reason: 'api_call_failed' }, analyticsCtx);
         }
-
-        const result = await generateCode(providerConfig, apiKey, systemPrompt, query);
 
         if (!result) {
             return NextResponse.json({
-                error: 'Failed to generate code',
+                error: 'No AI provider available. Check provider API keys.',
                 isCodeMode: true,
                 codeBlocks: []
             }, { status: 500 });
         }
+
+        // ── Cache Write ───────────────────────────────────
+        await setCache(cacheKey, result, 'code');
 
         return NextResponse.json(result);
 
     } catch (error) {
         console.error('Code generation error:', error);
+        trackEvent(EVENTS.API_ERROR, { error: error.message, route: 'code' });
         return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
     }
 }

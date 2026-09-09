@@ -1,0 +1,36 @@
+{
+  "cli": {
+    "version": ">= 14.0.0",
+    "appVersionSource": "remote"
+  },
+  "build": {
+    "development": {
+      "developmentClient": true,
+      "distribution": "internal"
+    },
+    "preview": {
+      "distribution": "internal",
+      "android": {
+        "buildType": "apk"
+      },
+      "env": {
+        "EXPO_PUBLIC_API_URL": "https://asteroid-chi.vercel.app",
+        "EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY": "pk_test_ZG9taW5hbnQtdHVya2V5LTI2LmNsZXJrLmFjY291bnRzLmRldiQ",
+        "EXPO_PUBLIC_SUPABASE_URL": "https://rbjepvujymmvfdrebjhc.supabase.co",
+        "EXPO_PUBLIC_SUPABASE_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJiamVwdnVqeW1tdmZkcmViamhjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjE5MzAzMTIsImV4cCI6MjA3NzUwNjMxMn0.pkELs9R4_xcc1K8Z47acVQSWusriWiGLtMy6k0ZGi_s"
+      }
+    },
+    "production": {
+      "autoIncrement": true,
+      "env": {
+        "EXPO_PUBLIC_API_URL": "https://asteroid-chi.vercel.app",
+        "EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY": "pk_test_ZG9taW5hbnQtdHVya2V5LTI2LmNsZXJrLmFjY291bnRzLmRldiQ",
+        "EXPO_PUBLIC_SUPABASE_URL": "https://rbjepvujymmvfdrebjhc.supabase.co",
+        "EXPO_PUBLIC_SUPABASE_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJiamVwdnVqeW1tdmZkcmViamhjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjE5MzAzMTIsImV4cCI6MjA3NzUwNjMxMn0.pkELs9R4_xcc1K8Z47acVQSWusriWiGLtMy6k0ZGi_s"
+      }
+    }
+  },
+  "submit": {
+    "production": {}
+  }
+}
