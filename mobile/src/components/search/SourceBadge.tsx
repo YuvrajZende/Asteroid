@@ -1,13 +1,11 @@
 /**
- * SourceBadge — clickable [n] citation badge linking to the source URL.
- * Out-of-range citation numbers are dropped by the caller (fake-citation
- * guard, web parity).
+ * SourceBadge — pill-shaped [n] citation badge linking to the source URL.
  */
 import React from 'react';
 import { Pressable, StyleSheet, Text } from 'react-native';
 import * as Haptics from 'expo-haptics';
 import { Linking } from 'react-native';
-import { colors, font, spacing } from '@/theme/theme';
+import { colors, font, radius, spacing } from '@/theme/theme';
 
 interface SourceBadgeProps {
   number: number;
@@ -30,13 +28,13 @@ export function SourceBadge({ number, url }: SourceBadgeProps) {
 
 const styles = StyleSheet.create({
   badge: {
-    backgroundColor: colors.accent,
-    borderRadius: 8,
-    minWidth: 20,
-    height: 20,
+    backgroundColor: colors.accentGlow,
+    borderRadius: radius.button,
+    minWidth: 22,
+    height: 22,
     paddingHorizontal: spacing(0.75),
     alignItems: 'center',
     justifyContent: 'center',
   },
-  label: { fontFamily: font.bodySemi, fontSize: 12, color: colors.text },
+  label: { fontFamily: font.bodySemi, fontSize: 12, color: colors.accent },
 });

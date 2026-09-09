@@ -1,20 +1,18 @@
 /**
- * Library — search history. Signed-in: the shared Supabase `Library`
- * table (same rows the web app writes). Guest: on-device recents.
- * Delete is optimistic — the row leaves the UI immediately and is
- * restored on server failure (mirrors the web app's optimistic pattern).
+ * Library — search history. Grok-style flat list with pure black
+ * background, simple text, and vertical dot menu.
  */
 import { useCallback, useEffect, useState } from 'react';
 import { FlatList, Pressable, RefreshControl, StyleSheet, Text, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Library as LibraryIcon, X } from 'lucide-react-native';
+import { Library as LibraryIcon, MoreVertical } from 'lucide-react-native';
 import { useUser } from '@clerk/expo';
 import { deleteLibraryEntry, fetchLibrary } from '@/services/supabase';
 import { useSearchStore } from '@/stores/useSearchStore';
 import { useGuestStore } from '@/stores/useGuestStore';
 import { Button } from '@/components/ui/Button';
-import { colors, font, radius, spacing, type } from '@/theme/theme';
+import { colors, font, spacing, type } from '@/theme/theme';
 import type { LibraryRow } from '@/types/api';
 
 type HistoryItem = {
@@ -31,8 +29,8 @@ function formatDate(iso?: string | number): string {
   const today = new Date();
   const sameDay = d.toDateString() === today.toDateString();
   return sameDay
-    ? d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-    : d.toLocaleDateString([], { month: 'short', day: 'numeric' });
+    ? d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }).toLowerCase()
+    : d.toLocaleDateString([], { weekday: 'long' }); // Returns 'Thursday', 'Wednesday'
 }
 
 export default function LibraryScreen() {
@@ -52,6 +50,7 @@ export default function LibraryScreen() {
     setLoading(true);
     const rows = await fetchLibrary(email);
     setShared(rows);
+
     setLoading(false);
   }, [useSharedHistory, email]);
 
@@ -61,21 +60,21 @@ export default function LibraryScreen() {
 
   const items: HistoryItem[] = useSharedHistory
     ? shared
-        .filter((r) => r.libId && r.searchInput)
-        .map((r) => ({
-          libId: r.libId!,
-          query: r.searchInput!,
-          type: r.type ?? 'search',
-          when: formatDate(r.created_at),
-          source: 'shared' as const,
-        }))
+      .filter((r) => r.libId && r.searchInput)
+      .map((r) => ({
+        libId: r.libId!,
+        query: r.searchInput!,
+        type: r.type ?? 'search',
+        when: formatDate(r.created_at),
+        source: 'shared' as const,
+      }))
     : recents.map((r) => ({
-        libId: r.libId,
-        query: r.query,
-        type: r.type,
-        when: formatDate(r.timestamp),
-        source: 'local' as const,
-      }));
+      libId: r.libId,
+      query: r.query,
+      type: r.type,
+      when: formatDate(r.timestamp),
+      source: 'local' as const,
+    }));
 
   const open = (item: HistoryItem) => {
     router.push({
@@ -101,19 +100,14 @@ export default function LibraryScreen() {
   return (
     <SafeAreaView style={styles.screen} edges={['top']}>
       <View style={styles.header}>
-        <Text style={type.pageHeading}>Library</Text>
-        {!isLoaded ? null : (
-          <Text style={type.caption}>
-            {useSharedHistory ? 'Synced with your web history' : 'Local history — sign in to sync'}
-          </Text>
-        )}
+        <Text style={styles.sectionTitle}>CONVERSATIONS</Text>
       </View>
 
       <FlatList
         data={items}
         keyExtractor={(item) => item.libId}
         contentContainerStyle={styles.list}
-        refreshControl={<RefreshControl refreshing={loading} onRefresh={load} tintColor={colors.accentBright} />}
+        refreshControl={<RefreshControl refreshing={loading} onRefresh={load} tintColor={colors.textSecondary} />}
         ListEmptyComponent={
           <View style={styles.empty}>
             <LibraryIcon size={40} color={colors.textSecondary} />
@@ -126,18 +120,17 @@ export default function LibraryScreen() {
           </View>
         }
         renderItem={({ item }) => (
-          <Pressable style={({ pressed }) => [styles.row, { opacity: pressed ? 0.8 : 1 }]} onPress={() => open(item)}>
+          <Pressable style={({ pressed }) => [styles.row, { opacity: pressed ? 0.7 : 1 }]} onPress={() => open(item)}>
             <View style={styles.rowText}>
               <Text style={styles.rowQuery} numberOfLines={2}>
                 {item.query}
               </Text>
-              <Text style={type.caption}>
-                {item.type} · {item.when}
-                {item.source === 'local' ? ' · local' : ''}
+              <Text style={styles.rowDate}>
+                {item.when}
               </Text>
             </View>
             <Pressable hitSlop={12} onPress={() => remove(item)} accessibilityLabel={`Delete ${item.query}`}>
-              <X size={18} color={colors.textSecondary} />
+              <MoreVertical size={16} color={colors.textSecondary} opacity={0.6} />
             </Pressable>
           </Pressable>
         )}
@@ -148,20 +141,28 @@ export default function LibraryScreen() {
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.bg },
-  header: { paddingHorizontal: spacing(3), paddingTop: spacing(3), paddingBottom: spacing(2), gap: 4 },
-  list: { paddingHorizontal: spacing(3), paddingBottom: spacing(4), gap: spacing(1) },
+  header: {
+    paddingHorizontal: spacing(3),
+    paddingTop: spacing(3),
+    paddingBottom: spacing(2)
+  },
+  sectionTitle: {
+    fontFamily: font.bodyMedium,
+    fontSize: 12,
+    color: colors.textSecondary,
+    letterSpacing: 0.5,
+  },
+  list: { paddingBottom: spacing(4) },
   row: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: colors.surface,
-    borderRadius: radius.card,
-    borderWidth: 1,
-    borderColor: colors.border,
-    padding: spacing(2.5),
-    gap: spacing(2),
+    paddingVertical: spacing(2.5),
+    paddingHorizontal: spacing(3),
+    justifyContent: 'space-between',
   },
-  rowText: { flex: 1, gap: 4 },
-  rowQuery: { fontFamily: font.bodySemi, fontSize: 15, color: colors.text },
+  rowText: { flex: 1, gap: 4, paddingRight: spacing(2) },
+  rowQuery: { fontFamily: font.body, fontSize: 16, color: colors.text, lineHeight: 22 },
+  rowDate: { fontFamily: font.bodyMedium, fontSize: 13, color: colors.textSecondary },
   empty: {
     alignItems: 'center',
     gap: spacing(2),

@@ -76,8 +76,6 @@ const styles = StyleSheet.create({
   card: {
     backgroundColor: code.surface,
     borderRadius: radius.card,
-    borderWidth: 1,
-    borderColor: colors.border,
     overflow: 'hidden',
   },
   header: {
@@ -86,8 +84,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing(2),
     paddingVertical: spacing(1),
     backgroundColor: code.chip,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border,
+    borderBottomWidth: 0.5,
+    borderBottomColor: colors.divider,
     gap: spacing(1.5),
   },
   chip: {
@@ -101,5 +99,5 @@ const styles = StyleSheet.create({
   dot: { width: 9, height: 9, borderRadius: 5, opacity: 0.85 },
   copied: { fontFamily: font.bodyMedium, fontSize: 11, color: colors.success },
   codeArea: { padding: spacing(2) },
-  line: { fontFamily: 'monospace', fontSize: 12.5, lineHeight: 20, color: code.plain },
+  line: { fontFamily: font.mono, fontSize: 12.5, lineHeight: 20, color: code.plain },
 });

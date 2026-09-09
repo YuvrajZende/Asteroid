@@ -39,6 +39,20 @@ export async function fetchLibrary(userEmail: string): Promise<LibraryRow[]> {
   return data ?? [];
 }
 
+export async function fetchLibraryEntry(libId: string): Promise<LibraryRow | null> {
+  if (!supabase) return null;
+  const { data, error } = await supabase
+    .from('Library')
+    .select('*')
+    .eq('libId', libId)
+    .single();
+  if (error) {
+    console.warn('[Library] fetch single entry failed:', error.message);
+    return null;
+  }
+  return data;
+}
+
 export async function deleteLibraryEntry(libId: string): Promise<void> {
   if (!supabase) return;
   const { error } = await supabase.from('Library').delete().eq('libId', libId);

@@ -11,8 +11,8 @@ export interface ModelOption {
 export const AIModelsOptions: ModelOption[] = [
   {
     id: 'groq',
-    name: 'Groq (Llama 3.3)',
-    description: 'Lightning-fast inference, sub-second responses',
+    name: 'Qwen 3.8 (Groq)',
+    description: 'Ultra-fast deep analytical reasoning',
     icon: '⚡',
   },
   {

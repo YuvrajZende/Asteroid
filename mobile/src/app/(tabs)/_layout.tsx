@@ -1,6 +1,6 @@
 /**
- * 4-tab bottom bar (spec §7): Search, Discover, Library, Profile.
- * Blurred dark surface, hairline top border, teal active tint.
+ * 4-tab bottom bar — X-style: pure black background, blue active tint,
+ * hairline top divider.
  */
 import { Tabs } from 'expo-router';
 import { Compass, Library, Search, User } from 'lucide-react-native';
@@ -11,11 +11,15 @@ export default function TabsLayout() {
     <Tabs
       screenOptions={{
         headerShown: false,
-        tabBarActiveTintColor: colors.accentBright,
+        tabBarActiveTintColor: colors.accent,
         tabBarInactiveTintColor: colors.textSecondary,
         tabBarStyle: {
-          backgroundColor: colors.surface,
-          borderTopColor: colors.border,
+          backgroundColor: colors.bg,
+          borderTopColor: colors.divider,
+          borderTopWidth: 0.5,
+        },
+        tabBarLabelStyle: {
+          fontSize: 11,
         },
         sceneStyle: { backgroundColor: colors.bg },
       }}
@@ -24,28 +28,28 @@ export default function TabsLayout() {
         name="search"
         options={{
           title: 'Search',
-          tabBarIcon: ({ color, size }) => <Search color={color} size={size} />,
+          tabBarIcon: ({ color, size }) => <Search color={color} size={size - 2} />,
         }}
       />
       <Tabs.Screen
         name="discover"
         options={{
           title: 'Discover',
-          tabBarIcon: ({ color, size }) => <Compass color={color} size={size} />,
+          tabBarIcon: ({ color, size }) => <Compass color={color} size={size - 2} />,
         }}
       />
       <Tabs.Screen
         name="library"
         options={{
           title: 'Library',
-          tabBarIcon: ({ color, size }) => <Library color={color} size={size} />,
+          tabBarIcon: ({ color, size }) => <Library color={color} size={size - 2} />,
         }}
       />
       <Tabs.Screen
         name="profile"
         options={{
           title: 'Profile',
-          tabBarIcon: ({ color, size }) => <User color={color} size={size} />,
+          tabBarIcon: ({ color, size }) => <User color={color} size={size - 2} />,
         }}
       />
     </Tabs>

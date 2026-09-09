@@ -1,6 +1,7 @@
 /**
  * SocialSection — Reddit / X discussions for the query (POST /api/social),
  * fetched lazily after results land; renders nothing when empty.
+ * Borderless cards, X-style aesthetic.
  */
 import React, { useEffect, useState } from 'react';
 import { Linking, StyleSheet, Text, View } from 'react-native';
@@ -44,7 +45,7 @@ export function SocialSection({ query }: { query: string }) {
     >
       <View style={styles.metaRow}>
         {kind === 'reddit' ? (
-          <MessageCircle size={13} color={colors.accentBright} />
+          <MessageCircle size={13} color={colors.accent} />
         ) : (
           <Text style={styles.xGlyph}>𝕏</Text>
         )}
@@ -60,7 +61,10 @@ export function SocialSection({ query }: { query: string }) {
 
   return (
     <View style={styles.section}>
-      <Text style={styles.sectionTitle}>Discussions</Text>
+      <View style={styles.sectionTitleRow}>
+        <View style={styles.sectionDot} />
+        <Text style={styles.sectionTitle}>Discussions</Text>
+      </View>
       {reddit.map((p) => renderPost(p, 'reddit'))}
       {twitter.map((p) => renderPost(p, 'twitter'))}
     </View>
@@ -69,18 +73,23 @@ export function SocialSection({ query }: { query: string }) {
 
 const styles = StyleSheet.create({
   section: { gap: spacing(1.5) },
+  sectionTitleRow: { flexDirection: 'row', alignItems: 'center', gap: spacing(1) },
+  sectionDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: colors.accent,
+  },
   sectionTitle: { ...type.sectionHeading, fontSize: 18 },
   card: {
     backgroundColor: colors.surface,
     borderRadius: radius.card,
-    borderWidth: 1,
-    borderColor: colors.border,
     padding: spacing(2.5),
     gap: 6,
   },
   metaRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  handle: { fontFamily: font.bodySemi, fontSize: 12, color: colors.accentBright, flex: 1 },
-  xGlyph: { fontSize: 12, lineHeight: 14, color: colors.accentBright },
+  handle: { fontFamily: font.bodySemi, fontSize: 12, color: colors.accent, flex: 1 },
+  xGlyph: { fontSize: 12, lineHeight: 14, color: colors.accent },
   kindLabel: { fontFamily: font.body, fontSize: 11, color: colors.textSecondary },
   title: { fontFamily: font.bodySemi, fontSize: 14.5, lineHeight: 20, color: colors.text },
   snippet: { fontFamily: font.body, fontSize: 13, lineHeight: 19, color: colors.textSecondary },

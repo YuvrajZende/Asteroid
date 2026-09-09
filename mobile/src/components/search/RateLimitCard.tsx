@@ -1,6 +1,6 @@
 /**
- * RateLimitCard — 429 response with a live Retry-After countdown and a
- * retry affordance (spec §8).
+ * RateLimitCard — 429 response with a live countdown and retry button.
+ * Borderless surface card with warning accent.
  */
 import React, { useEffect, useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
@@ -42,8 +42,8 @@ const styles = StyleSheet.create({
   card: {
     backgroundColor: colors.surface,
     borderRadius: radius.card,
-    borderWidth: 1,
-    borderColor: 'rgba(245,158,11,0.35)',
+    borderLeftWidth: 3,
+    borderLeftColor: colors.warning,
     padding: spacing(3),
     gap: spacing(2),
   },

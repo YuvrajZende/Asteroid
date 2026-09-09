@@ -73,29 +73,22 @@ YOUR RESPONSE MUST FOLLOW THIS EXACT FORMAT:
 ## How It's Fixed
 [Brief explanation of the fix]`;
 
-// Provider configurations (reusing from ai route)
+// Provider configurations (reusing from ai route with working models)
 const PROVIDERS = {
     groq: {
         url: 'https://api.groq.com/openai/v1/chat/completions',
-        model: 'llama-3.3-70b-versatile',
+        models: ['qwen/qwen3.8-27b', 'openai/gpt-oss-120b', 'openai/gpt-oss-20b', 'groq/compound'],
+        model: 'qwen/qwen3.8-27b',
         getHeaders: (apiKey) => ({
             'Authorization': `Bearer ${apiKey}`,
             'Content-Type': 'application/json',
         }),
         envKey: 'GROQ_API_KEY'
     },
-    gemini: {
-        url: 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent',
-        getHeaders: (apiKey) => ({
-            'Content-Type': 'application/json',
-            'x-goog-api-key': apiKey,
-        }),
-        envKey: 'GEMINI_API_KEY',
-        isGemini: true
-    },
     openrouter: {
         url: 'https://openrouter.ai/api/v1/chat/completions',
-        model: 'google/gemini-2.5-flash-lite',
+        models: ['meta-llama/llama-3.3-70b-instruct', 'deepseek/deepseek-chat', 'qwen/qwen-2.5-72b-instruct'],
+        model: 'meta-llama/llama-3.3-70b-instruct',
         getHeaders: (apiKey) => ({
             'Authorization': `Bearer ${apiKey}`,
             'Content-Type': 'application/json',
@@ -103,32 +96,49 @@ const PROVIDERS = {
             'X-Title': 'Asteroid Code Generator'
         }),
         envKey: 'OPENROUTER_API_KEY'
+    },
+    gemini: {
+        url: 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent',
+        models: ['gemini-2.0-flash', 'gemini-1.5-flash'],
+        model: 'gemini-2.0-flash',
+        getHeaders: (apiKey) => ({
+            'Content-Type': 'application/json',
+            'x-goog-api-key': apiKey,
+        }),
+        envKey: 'GEMINI_API_KEY',
+        isGemini: true
     }
 };
 
-async function callOpenAICompatible(config, apiKey, messages) {
-    const response = await fetch(config.url, {
-        method: 'POST',
-        headers: config.getHeaders(apiKey),
-        body: JSON.stringify({
-            model: config.model,
-            messages: messages,
-            temperature: 0.3, // Lower temperature for more consistent code
-            max_tokens: 4000,
-        }),
-    });
+async function callOpenAICompatible(config, apiKey, messages, modelOverride = null) {
+    const modelToUse = modelOverride || config.model;
+    try {
+        const response = await fetch(config.url, {
+            method: 'POST',
+            headers: config.getHeaders(apiKey),
+            body: JSON.stringify({
+                model: modelToUse,
+                messages: messages,
+                temperature: 0.3, // Lower temperature for more consistent code
+                max_tokens: 4000,
+            }),
+        });
 
-    if (!response.ok) {
-        const errorText = await response.text();
-        console.error(`${config.envKey} API error:`, errorText);
+        if (!response.ok) {
+            const errorText = await response.text();
+            console.error(`${config.envKey} (${modelToUse}) API error:`, errorText);
+            return null;
+        }
+
+        const data = await response.json();
+        return {
+            content: data.choices[0]?.message?.content || '',
+            model: data.model || modelToUse
+        };
+    } catch (err) {
+        console.error(`${config.envKey} (${modelToUse}) fetch error:`, err.message);
         return null;
     }
-
-    const data = await response.json();
-    return {
-        content: data.choices[0]?.message?.content || '',
-        model: data.model || config.model
-    };
 }
 
 async function callGemini(config, apiKey, systemPrompt, userMessage) {
@@ -242,7 +252,12 @@ export async function POST(request) {
         for (const config of orderedProviders) {
             const apiKey = process.env[config.envKey];
             if (!apiKey) continue;
-            result = await generateCode(config, apiKey, systemPrompt, query);
+            
+            const modelsToTry = config.models || [config.model];
+            for (const candidateModel of modelsToTry) {
+                result = await generateCode({ ...config, model: candidateModel }, apiKey, systemPrompt, query);
+                if (result) break;
+            }
             if (result) break;
             console.log(`Provider ${config.envKey} call failed — trying next provider`);
             trackEvent(EVENTS.PROVIDER_FALLBACK, { model, reason: 'api_call_failed' }, analyticsCtx);

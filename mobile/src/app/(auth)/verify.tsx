@@ -115,7 +115,7 @@ export default function VerifyScreen() {
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.bg },
-  content: { flex: 1, padding: spacing(3), paddingTop: spacing(8), gap: spacing(3) },
+  content: { flex: 1, padding: spacing(3), paddingTop: spacing(10), gap: spacing(3) },
   subline: { ...type.caption, lineHeight: 20 },
   error: { ...type.caption, color: colors.critical },
   actions: { gap: spacing(2), marginTop: spacing(2) },

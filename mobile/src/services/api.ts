@@ -12,6 +12,7 @@
 import type {
   AIResponse,
   CodeResponse,
+  ImageResult,
   ModelId,
   NewsResponse,
   ResearchResponse,
@@ -20,8 +21,32 @@ import type {
   WebResult,
 } from '@/types/api';
 
-const API_URL = process.env.EXPO_PUBLIC_API_URL ?? 'http://10.0.2.2:3000';
-const TIMEOUT_MS = 10_000;
+import { Platform } from 'react-native';
+import Constants from 'expo-constants';
+
+const getDefaultApiUrl = () => {
+  // If explicitly configured to a custom remote URL, use it
+  const envUrl = process.env.EXPO_PUBLIC_API_URL;
+  if (envUrl && !envUrl.includes('10.0.2.2') && !envUrl.includes('localhost')) {
+    return envUrl;
+  }
+
+  // Automatic LAN host detection from Metro bundler (works on both physical devices & emulators)
+  const hostUri = Constants.expoConfig?.hostUri ?? Constants.manifest2?.extra?.expoClient?.hostUri;
+  if (hostUri) {
+    const host = hostUri.split(':')[0];
+    if (host && host !== 'localhost' && host !== '127.0.0.1') {
+      return `http://${host}:3000`;
+    }
+  }
+
+  if (envUrl) return envUrl;
+  if (Platform.OS === 'android') return 'http://10.0.2.2:3000';
+  return 'http://localhost:3000';
+};
+
+const API_URL = getDefaultApiUrl();
+const TIMEOUT_MS = 30_000;
 
 export class ApiError extends Error {
   constructor(
@@ -122,10 +147,13 @@ export function synthesize(
   query: string,
   searchResults: WebResult[],
   model: ModelId,
+  images: ImageResult[] = [],
+  contextTitle = '',
+  conversationHistory: Array<{ query: string; answer?: string; summary?: string }> = [],
 ): Promise<AIResponse> {
   return apiFetch<AIResponse>('/api/ai', {
     method: 'POST',
-    body: JSON.stringify({ query, searchResults, model }),
+    body: JSON.stringify({ query, searchResults, model, images, contextTitle, conversationHistory }),
   });
 }
 

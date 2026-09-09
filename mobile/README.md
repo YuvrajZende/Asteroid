@@ -36,11 +36,31 @@ node --test scripts/smoke-api.mjs   # API contract check (needs web server + Red
 node scripts/spike-bearer-auth.mjs "<token>"  # Bearer-auth spike (see file header)
 ```
 
-## Phase status
+## Build & Deployment
 
-- **P1 (this branch):** app shell, dark theme + UI kit, Clerk auth
-  (email+password / Google / guest), splash gate, Search tab end-to-end with
-  cited AI answers, Library (shared history), Profile (model picker).
-- **P2:** Discover → Papers segment (Google Scholar), code answers with
-  highlighted blocks + copy.
-- **P3:** Discover → News segment, social discussions in results, polish.
+1. **Install EAS CLI** (if not already installed):
+   ```bash
+   npm install -g eas-cli
+   eas login
+   ```
+
+2. **Build Standalone Android APK (Direct install on device/emulator)**:
+   ```bash
+   cd mobile
+   eas build -p android --profile preview
+   ```
+
+3. **Build Production Bundles (Google Play AAB / iOS IPA)**:
+   ```bash
+   # Android Play Store Bundle
+   eas build -p android --profile production
+
+   # iOS App Store Bundle
+   eas build -p ios --profile production
+   ```
+
+4. **Local Android Build (Alternative without cloud)**:
+   ```bash
+   npx expo prebuild
+   npx expo run:android --variant release
+   ```

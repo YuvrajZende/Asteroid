@@ -1,6 +1,5 @@
 /**
- * SkeletonCard — pulsing placeholder that mimics the answer structure,
- * reducing perceived latency during synthesis (v1 spec §5).
+ * SkeletonCard — borderless pulsing placeholder on dark surface, X-style.
  */
 import React, { useEffect } from 'react';
 import { StyleSheet, View } from 'react-native';
@@ -13,10 +12,10 @@ import Animated, {
 import { colors, radius, spacing } from '@/theme/theme';
 
 export function SkeletonCard({ lines = 4 }: { lines?: number }) {
-  const opacity = useSharedValue(0.35);
+  const opacity = useSharedValue(0.3);
 
   useEffect(() => {
-    opacity.value = withRepeat(withTiming(0.8, { duration: 700 }), -1, true);
+    opacity.value = withRepeat(withTiming(0.7, { duration: 800 }), -1, true);
   }, [opacity]);
 
   const pulse = useAnimatedStyle(() => ({ opacity: opacity.value }));
@@ -38,8 +37,6 @@ const styles = StyleSheet.create({
   card: {
     backgroundColor: colors.surface,
     borderRadius: radius.card,
-    borderWidth: 1,
-    borderColor: colors.border,
     padding: spacing(3),
     gap: spacing(1.5),
   },

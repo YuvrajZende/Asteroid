@@ -13,12 +13,24 @@ export interface RecentSearch {
 
 export type ConversationStage = 'searching' | 'synthesizing' | 'done' | 'error';
 
+export interface ConversationTurn {
+  id: string;
+  query: string;
+  stage: ConversationStage;
+  search?: SearchResponse;
+  ai?: AIResponse | null;
+  code?: CodeResponse;
+  error?: string;
+  startedAt: number;
+}
+
 export interface Conversation {
   libId: string;
   query: string;
   model: ModelId;
   type: SearchType;
   stage: ConversationStage;
+  turns?: ConversationTurn[];
   search?: SearchResponse;
   ai?: AIResponse | null; // null = graceful degrade (AI unavailable, show web results)
   code?: CodeResponse;

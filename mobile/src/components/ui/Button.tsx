@@ -1,10 +1,12 @@
 /**
- * Button — variants per v1 spec §5: primary (teal fill), secondary
- * (dark card + hairline), ghost. Loading state disables double submits;
- * light haptic on primary presses.
+ * Button — X/Grok-inspired variants:
+ * primary: white fill, black text (Grok CTA style)
+ * secondary: dark surface + subtle border
+ * ghost: text-only with blue accent
+ * All variants use pill shape (radius.button = 24).
  */
 import React from 'react';
-import { ActivityIndicator, Pressable, StyleSheet, Text, View, ViewStyle } from 'react-native';
+import { ActivityIndicator, Pressable, StyleSheet, Text, ViewStyle } from 'react-native';
 import * as Haptics from 'expo-haptics';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import { colors, font, motion, radius, spacing } from '@/theme/theme';
@@ -19,9 +21,9 @@ interface ButtonProps {
 }
 
 const VARIANTS = {
-  primary: { bg: colors.accent, border: 'transparent', text: colors.text },
-  secondary: { bg: colors.surface, border: colors.border, text: colors.text },
-  ghost: { bg: 'transparent', border: 'transparent', text: colors.textSecondary },
+  primary: { bg: '#FFFFFF', border: 'transparent', text: '#000000', loaderColor: '#000000' },
+  secondary: { bg: colors.surface, border: colors.border, text: colors.text, loaderColor: colors.text },
+  ghost: { bg: 'transparent', border: 'transparent', text: colors.accent, loaderColor: colors.accent },
 } as const;
 
 export function Button({
@@ -51,12 +53,12 @@ export function Button({
         onPress={handlePress}
         style={({ pressed }) => [
           styles.base,
-          { backgroundColor: v.bg, borderColor: v.border, opacity: blocked ? 0.6 : pressed ? 0.85 : 1 },
+          { backgroundColor: v.bg, borderColor: v.border, opacity: blocked ? 0.5 : pressed ? 0.85 : 1 },
           style,
         ]}
       >
         {loading ? (
-          <ActivityIndicator color={v.text} />
+          <ActivityIndicator color={v.loaderColor} />
         ) : (
           <Text style={[styles.label, { color: v.text }]}>{title}</Text>
         )}

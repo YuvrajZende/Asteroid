@@ -1,5 +1,5 @@
 /**
- * PasswordField — TextField + show/hide + strength meter (weak/fair/strong).
+ * PasswordField — TextField + show/hide + strength meter. Pill-shaped, X/Grok style.
  */
 import React, { useMemo, useState } from 'react';
 import { Pressable, StyleSheet, Text, View, TextInputProps } from 'react-native';
@@ -76,9 +76,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     marginTop: spacing(1),
+    paddingHorizontal: 4,
   },
   meter: { flexDirection: 'row', gap: 4, flex: 1 },
   segment: { height: 4, width: 28, borderRadius: 2 },
   strengthLabel: { fontFamily: font.bodyMedium, fontSize: 12, marginLeft: 8 },
-  toggle: { fontFamily: font.bodyMedium, fontSize: 13, color: colors.accentBright },
+  toggle: { fontFamily: font.bodyMedium, fontSize: 13, color: colors.accent },
 });

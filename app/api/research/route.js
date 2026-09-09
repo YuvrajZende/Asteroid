@@ -1,5 +1,9 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
+import { makeCacheKey, getCached, setCache } from '@/lib/redis/cache.js';
+import { checkRateLimit, rateLimitResponse, getRateLimitIdentifier } from '@/lib/rate-limit/limiter.js';
+import { trackEvent, extractContext } from '@/lib/analytics/tracker.js';
+import { EVENTS } from '@/lib/analytics/constants.js';
 
 const CACHE_DURATION_MS = 7 * 24 * 60 * 60 * 1000; // 7 days in milliseconds
 
@@ -24,7 +28,7 @@ function getCacheAge(updatedAt) {
     return Date.now() - new Date(updatedAt).getTime();
 }
 
-async function getCache(category) {
+async function getApiCache(category) {
     try {
         const { data, error } = await supabase
             .from('ApiCache')
@@ -39,7 +43,7 @@ async function getCache(category) {
     }
 }
 
-async function setCache(category, responseData) {
+async function setApiCache(category, responseData) {
     try {
         await supabase
             .from('ApiCache')
@@ -55,11 +59,32 @@ async function setCache(category, responseData) {
 
 export async function GET(request) {
     try {
+        // ── Rate Limiting ─────────────────────────────────
+        const { identifier, userId } = await getRateLimitIdentifier(request);
+        const rateLimit = await checkRateLimit(identifier, {
+            windowMs: 60_000,
+            maxRequests: 5,      // SerpAPI is expensive — tighter limit
+            prefix: 'rl:research',
+        });
+        if (!rateLimit.allowed) return rateLimitResponse(rateLimit);
+
         const { searchParams } = new URL(request.url);
         const category = searchParams.get('category') || 'ai';
         const forceRefresh = searchParams.get('refresh') === 'true';
+        const analyticsCtx = { ...extractContext(request), route: 'research', userId };
 
-        const cachedRecord = await getCache(category);
+        // ── Redis Cache Lookup (fast path, 15 min TTL) ───
+        const cacheKey = makeCacheKey('research', { category });
+        if (!forceRefresh) {
+            const cached = await getCached(cacheKey);
+            if (cached) {
+                trackEvent(EVENTS.CACHE_HIT, { category, route: 'research' }, analyticsCtx);
+                return NextResponse.json({ ...cached, fromCache: true });
+            }
+        }
+        trackEvent(EVENTS.CACHE_MISS, { category, route: 'research' }, analyticsCtx);
+
+        const cachedRecord = await getApiCache(category);
         const cachedData = cachedRecord ? cachedRecord.data : null;
         const cacheAge = cachedRecord ? getCacheAge(cachedRecord.created_at) : Infinity;
 
@@ -138,7 +163,11 @@ export async function GET(request) {
             fetchedAt: new Date().toISOString()
         };
 
-        await setCache(category, responseData);
+        await setApiCache(category, responseData);
+
+        // ── Redis Cache Write ─────────────────────────────
+        await setCache(cacheKey, responseData, 'research');
+        trackEvent(EVENTS.RESEARCH_QUERY, { category, resultCount: papers.length }, analyticsCtx);
 
         return NextResponse.json({
             ...responseData,
@@ -147,6 +176,7 @@ export async function GET(request) {
 
     } catch (error) {
         console.error('Research API error:', error);
+        trackEvent(EVENTS.API_ERROR, { error: error.message, route: 'research' });
         return NextResponse.json({
             error: 'Internal server error',
             papers: []

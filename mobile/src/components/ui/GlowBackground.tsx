@@ -1,6 +1,6 @@
 /**
- * Ambient radial glow layers for hero screens (splash, welcome).
- * Linear gradients masked into large circles — teal + void, per v1 spec §2.
+ * Ambient radial glow layers — X-blue atmospheric light on OLED black.
+ * Used on hero screens (splash, welcome, search) for depth.
  */
 import React from 'react';
 import { StyleSheet } from 'react-native';
@@ -14,11 +14,11 @@ export function GlowBackground({ intensity = 1 }: GlowBackgroundProps) {
   return (
     <>
       <LinearGradient
-        colors={['rgba(43,176,199,0.16)', 'rgba(43,176,199,0)']}
+        colors={['rgba(29,155,240,0.10)', 'rgba(29,155,240,0)']}
         style={[styles.glowA, { opacity: intensity }]}
       />
       <LinearGradient
-        colors={['rgba(32,128,141,0.10)', 'rgba(25,26,26,0)']}
+        colors={['rgba(29,155,240,0.06)', 'rgba(0,0,0,0)']}
         style={[styles.glowB, { opacity: intensity }]}
       />
     </>
@@ -28,18 +28,18 @@ export function GlowBackground({ intensity = 1 }: GlowBackgroundProps) {
 const styles = StyleSheet.create({
   glowA: {
     position: 'absolute',
-    top: -180,
-    right: -140,
-    width: 420,
-    height: 420,
-    borderRadius: 210,
+    top: -200,
+    right: -160,
+    width: 440,
+    height: 440,
+    borderRadius: 220,
   },
   glowB: {
     position: 'absolute',
-    bottom: -220,
-    left: -160,
-    width: 480,
-    height: 480,
-    borderRadius: 240,
+    bottom: -240,
+    left: -180,
+    width: 500,
+    height: 500,
+    borderRadius: 250,
   },
 });

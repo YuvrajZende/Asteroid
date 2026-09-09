@@ -1,5 +1,5 @@
 /**
- * TextField — label, focus ring, error message slot (v1 spec §5).
+ * TextField — pill-shaped input with blue focus ring, X/Grok aesthetic.
  */
 import React, { useState } from 'react';
 import { StyleSheet, Text, TextInput, View, TextInputProps } from 'react-native';
@@ -50,13 +50,14 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: colors.textSecondary,
     marginBottom: 6,
+    marginLeft: 4,
   },
   input: {
     height: 52,
     borderRadius: radius.input,
     borderWidth: 1,
     backgroundColor: colors.surface,
-    paddingHorizontal: spacing(2),
+    paddingHorizontal: spacing(2.5),
     fontFamily: font.body,
     fontSize: 16,
     color: colors.text,
@@ -66,5 +67,6 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: colors.critical,
     marginTop: 6,
+    marginLeft: 4,
   },
 });

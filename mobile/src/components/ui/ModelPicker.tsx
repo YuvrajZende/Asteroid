@@ -1,6 +1,6 @@
 /**
- * ModelPicker — bottom sheet (radius.sheet) listing the same four
- * providers as the web app; check marks the active model.
+ * ModelPicker — bottom sheet listing AI models. X/Grok-style dark surface,
+ * blue accent for active selection.
  */
 import React from 'react';
 import { Modal, Pressable, StyleSheet, Text, View } from 'react-native';
@@ -18,7 +18,7 @@ interface ModelPickerProps {
 function Check() {
   return (
     <Svg width={18} height={18} viewBox="0 0 24 24">
-      <Path d="M20 6L9 17l-5-5" fill="none" stroke={colors.accentBright} strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" />
+      <Path d="M20 6L9 17l-5-5" fill="none" stroke={colors.accent} strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" />
     </Svg>
   );
 }
@@ -63,13 +63,11 @@ export function ModelPicker({ visible, onClose }: ModelPickerProps) {
 }
 
 const styles = StyleSheet.create({
-  backdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.55)', justifyContent: 'flex-end' },
+  backdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.7)', justifyContent: 'flex-end' },
   sheet: {
     backgroundColor: colors.surface,
     borderTopLeftRadius: radius.sheet,
     borderTopRightRadius: radius.sheet,
-    borderWidth: 1,
-    borderColor: colors.border,
     paddingHorizontal: spacing(3),
     paddingTop: spacing(2),
     paddingBottom: spacing(5),
@@ -77,9 +75,9 @@ const styles = StyleSheet.create({
   },
   handle: {
     alignSelf: 'center',
-    width: 44,
-    height: 5,
-    borderRadius: 3,
+    width: 40,
+    height: 4,
+    borderRadius: 2,
     backgroundColor: colors.elevated,
     marginBottom: spacing(2),
   },
@@ -89,11 +87,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     padding: spacing(2),
     borderRadius: radius.card,
-    borderWidth: 1,
-    borderColor: colors.border,
     backgroundColor: colors.bg,
   },
-  optionActive: { borderColor: colors.accent },
+  optionActive: { backgroundColor: colors.accentGlow, borderWidth: 1, borderColor: colors.accent },
   optionIcon: { fontSize: 22, marginRight: spacing(2) },
   optionText: { flex: 1 },
   optionName: { fontFamily: font.bodySemi, fontSize: 15, color: colors.text },

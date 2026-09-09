@@ -1,14 +1,9 @@
 /**
- * Animated splash — the "Asteroid" motif: two moons orbiting the mark on
- * elliptical paths. Routes by the gate once Clerk is loaded: signed-in or
- * guest → tabs, else the auth flow (v1 spec §4).
- *
- * Safety valves: a dev status line reports gate state, and if Clerk never
- * loads (bad key, offline) a "Continue" affordance appears so the app can
- * never deadlock on this screen.
+ * Animated Splash & Loading Screen — Asteroid AI
+ * Shows animated glowing brand mark with dynamic loading indicator and progress text.
  */
 import { useEffect, useState } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useAuth } from '@clerk/expo';
 import Animated, {
@@ -16,6 +11,7 @@ import Animated, {
   useAnimatedStyle,
   useSharedValue,
   withRepeat,
+  withSequence,
   withTiming,
 } from 'react-native-reanimated';
 import { Logo } from '@/components/brand/Logo';
@@ -23,72 +19,114 @@ import { GlowBackground } from '@/components/ui/GlowBackground';
 import { useGuestStore } from '@/stores/useGuestStore';
 import { colors, font, radius, spacing, type } from '@/theme/theme';
 
-const GATE_TIMEOUT_MS = 6000;
+const GATE_TIMEOUT_MS = 2500;
 
 export default function Index() {
   const router = useRouter();
   const { isLoaded, isSignedIn } = useAuth();
   const isGuest = useGuestStore((s) => s.isGuest);
   const [timedOut, setTimedOut] = useState(false);
+  const [statusText, setStatusText] = useState('Initializing Asteroid...');
 
-  const orbit = useSharedValue(0);
-  const glow = useSharedValue(0.7);
+  const pulse = useSharedValue(1);
+  const glow = useSharedValue(0.6);
+  const progressWidth = useSharedValue(0);
 
   useEffect(() => {
-    orbit.value = withRepeat(
-      withTiming(360, { duration: 2400, easing: Easing.linear }),
+    // Pulse animation
+    pulse.value = withRepeat(
+      withSequence(
+        withTiming(1.05, { duration: 1200, easing: Easing.inOut(Easing.ease) }),
+        withTiming(1, { duration: 1200, easing: Easing.inOut(Easing.ease) }),
+      ),
       -1,
-      false,
+      true,
     );
-    glow.value = withTiming(1, { duration: 900 });
-  }, [orbit, glow]);
 
+    // Glow pulse
+    glow.value = withRepeat(
+      withSequence(
+        withTiming(1, { duration: 1200 }),
+        withTiming(0.6, { duration: 1200 }),
+      ),
+      -1,
+      true,
+    );
+
+    // Progress bar animation
+    progressWidth.value = withTiming(100, { duration: 2000, easing: Easing.out(Easing.cubic) });
+
+    const statusTimer = setTimeout(() => {
+      setStatusText('Connecting to knowledge engine...');
+    }, 1000);
+
+    return () => clearTimeout(statusTimer);
+  }, [pulse, glow, progressWidth]);
+
+  // Fallback timer
   useEffect(() => {
     if (isLoaded) return;
-    const t = setTimeout(() => setTimedOut(true), GATE_TIMEOUT_MS);
+    const t = setTimeout(() => {
+      setTimedOut(true);
+      router.replace(isGuest ? '/(tabs)/search' : '/(auth)/welcome');
+    }, GATE_TIMEOUT_MS);
     return () => clearTimeout(t);
-  }, [isLoaded]);
+  }, [isLoaded, isGuest, router]);
 
+  // Smooth route transition
   useEffect(() => {
-    if (!isLoaded) return; // hold the splash — no auth flash
+    if (!isLoaded) return;
     const t = setTimeout(() => {
       router.replace(isSignedIn || isGuest ? '/(tabs)/search' : '/(auth)/welcome');
-    }, 900);
+    }, 800);
     return () => clearTimeout(t);
   }, [isLoaded, isSignedIn, isGuest, router]);
 
-  const orbitA = useAnimatedStyle(() => ({ transform: [{ rotate: `${orbit.value}deg` }] }));
-  const orbitB = useAnimatedStyle(() => ({
-    transform: [{ rotate: `${orbit.value + 160}deg` }],
+  const logoAnimatedStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: pulse.value }],
   }));
-  const glowStyle = useAnimatedStyle(() => ({ opacity: glow.value }));
+
+  const glowStyle = useAnimatedStyle(() => ({
+    opacity: glow.value,
+  }));
+
+  const progressBarStyle = useAnimatedStyle(() => ({
+    width: `${progressWidth.value}%`,
+  }));
 
   return (
     <View style={styles.screen}>
       <Animated.View style={glowStyle}>
-        <GlowBackground />
+        <GlowBackground intensity={0.4} />
       </Animated.View>
-      <View style={styles.markWrap}>
-        <View pointerEvents="none" style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }}>
-          <Animated.View style={[styles.orbitWrap, orbitA]}>
-            <View style={styles.moonA} />
-          </Animated.View>
-          <Animated.View style={[styles.orbitWrap, orbitB]}>
-            <View style={styles.moonB} />
-          </Animated.View>
+
+      <View style={styles.centerContainer}>
+        {/* Animated Brand Logo */}
+        <Animated.View style={[styles.markWrap, logoAnimatedStyle]}>
+          <Logo size={130} />
+        </Animated.View>
+
+        {/* Dynamic Loading Section */}
+        <View style={styles.loadingSection}>
+          <ActivityIndicator size="small" color={colors.accent} style={styles.spinner} />
+          <Text style={styles.statusText}>{statusText}</Text>
+
+          {/* Minimalist Progress Track */}
+          <View style={styles.progressTrack}>
+            <Animated.View style={[styles.progressBar, progressBarStyle]} />
+          </View>
         </View>
-        <Logo size={120} />
       </View>
 
+      {/* Fallback button if auth is delayed */}
       {timedOut && !isLoaded && (
         <View style={styles.fallback}>
-          <Text style={styles.fallbackText}>Auth is taking a while to load</Text>
           <Pressable
             accessibilityRole="button"
             onPress={() => router.replace('/(auth)/welcome')}
-            style={({ pressed }) => [styles.fallbackButton, { opacity: pressed ? 0.8 : 1 }]}
+            style={({ pressed }) => [styles.fallbackButton, pressed && { opacity: 0.8 }]}
           >
-            <Text style={styles.fallbackButtonText}>Continue to sign in</Text>
+            <Text style={styles.fallbackButtonText}>Tap to start</Text>
           </Pressable>
         </View>
       )}
@@ -103,46 +141,72 @@ export default function Index() {
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: colors.bg, alignItems: 'center', justifyContent: 'center' },
-  markWrap: { alignItems: 'center', justifyContent: 'center', width: 260, height: 260 },
-  orbitWrap: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
+  screen: {
+    flex: 1,
+    backgroundColor: '#000000',
     alignItems: 'center',
-    justifyContent: 'flex-start',
+    justifyContent: 'center',
   },
-  moonA: {
-    width: 10,
-    height: 10,
-    borderRadius: radius.button / 2,
-    backgroundColor: colors.accentBright,
-    marginTop: 6,
+  centerContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: spacing(4),
   },
-  moonB: {
-    width: 7,
-    height: 7,
-    borderRadius: 4,
-    backgroundColor: colors.textSecondary,
-    marginTop: 22,
+  markWrap: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    width: 160,
+    height: 160,
   },
-  fallback: { alignItems: 'center', gap: spacing(1.5), marginTop: spacing(4) },
-  fallbackText: { ...type.caption },
+  loadingSection: {
+    alignItems: 'center',
+    gap: spacing(1.5),
+    width: 220,
+  },
+  spinner: {
+    marginBottom: 2,
+  },
+  statusText: {
+    fontFamily: font.bodyMedium,
+    fontSize: 13.5,
+    color: '#8E959E',
+    textAlign: 'center',
+  },
+  progressTrack: {
+    width: '100%',
+    height: 3,
+    backgroundColor: 'rgba(255, 255, 255, 0.08)',
+    borderRadius: 1.5,
+    overflow: 'hidden',
+    marginTop: spacing(1),
+  },
+  progressBar: {
+    height: '100%',
+    backgroundColor: colors.accent,
+    borderRadius: 1.5,
+  },
+  fallback: {
+    position: 'absolute',
+    bottom: spacing(6),
+    alignItems: 'center',
+  },
   fallbackButton: {
-    borderWidth: 1,
-    borderColor: colors.border,
-    backgroundColor: colors.surface,
-    borderRadius: radius.button,
+    backgroundColor: '#16181C',
+    borderRadius: 20,
     paddingHorizontal: spacing(3),
-    paddingVertical: spacing(1.5),
+    paddingVertical: 10,
+    borderWidth: 0.5,
+    borderColor: 'rgba(255, 255, 255, 0.12)',
   },
-  fallbackButtonText: { fontFamily: font.bodySemi, fontSize: 14, color: colors.text },
+  fallbackButtonText: {
+    fontFamily: font.bodySemi,
+    fontSize: 13.5,
+    color: colors.accent,
+  },
   devStatus: {
     position: 'absolute',
-    bottom: spacing(3),
-    fontFamily: font.body,
+    bottom: spacing(2),
+    fontFamily: font.mono,
     fontSize: 11,
     color: colors.textSecondary,
   },

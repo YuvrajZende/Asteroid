@@ -1,5 +1,5 @@
 /**
- * SocialButton — icon + label on a dark card with hairline border (v1 spec §5).
+ * SocialButton — pill-shaped, white border on black, Grok-style social sign-in.
  */
 import React from 'react';
 import { Pressable, StyleSheet, Text, View, ViewStyle } from 'react-native';
@@ -21,7 +21,7 @@ export function SocialButton({ label, icon, onPress, disabled = false, style }: 
       onPress={disabled ? undefined : onPress}
       style={({ pressed }) => [
         styles.base,
-        { opacity: disabled ? 0.6 : pressed ? 0.85 : 1 },
+        { opacity: disabled ? 0.5 : pressed ? 0.85 : 1 },
         style,
       ]}
     >
@@ -34,16 +34,16 @@ export function SocialButton({ label, icon, onPress, disabled = false, style }: 
 
 const styles = StyleSheet.create({
   base: {
-    height: 52,
+    height: 54,
     borderRadius: radius.button,
     borderWidth: 1,
-    borderColor: colors.border,
-    backgroundColor: colors.surface,
+    borderColor: 'rgba(255,255,255,0.14)',
+    backgroundColor: '#16181C',
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: spacing(3),
   },
-  icon: { width: 28, alignItems: 'flex-start' },
-  label: { flex: 1, textAlign: 'center', fontFamily: font.bodySemi, fontSize: 15, color: colors.text },
+  icon: { width: 28, alignItems: 'flex-start', justifyContent: 'center' },
+  label: { flex: 1, textAlign: 'center', fontFamily: font.bodySemi, fontSize: 15, color: '#FFFFFF' },
   spacer: { width: 28 },
 });

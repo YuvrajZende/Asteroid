@@ -70,12 +70,21 @@ export interface AISection {
 }
 
 export interface AIResponse {
+  title?: string;
+  subtitle?: string;
+  query_type?: string;
+  summary?: {
+    content: string;
+    sources?: string[];
+  } | string;
   answer?: string;
   rawContent?: string;
-  sections?: AISection[];
+  sections?: import('./article').EditorialSection[] | AISection[];
   keyPoints?: string[];
   relatedQuestions?: string[];
-  sources?: SourceRef[];
+  sources?: any[];
+  blocks?: import('@/types/blocks').Block[];
+  follow_ups?: string[];
   isAI?: boolean;
   model?: string;
   fromCache?: boolean;
