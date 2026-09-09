@@ -1,4 +1,4 @@
-# Asteroid AI
+# Asteroid AI Application
 
 A Next.js-powered AI search and research application with user authentication and search history management.
 
